@@ -200,6 +200,7 @@ function TaskCard({ task, index, value, onChange, result }) {
 
   return (
     <motion.li
+      data-task={task.id}
       className={'task' + (status ? ` task--${status}` : '')}
       initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
