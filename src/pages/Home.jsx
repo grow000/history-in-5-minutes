@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { animate, motion, useInView, useReducedMotion } from 'framer-motion'
 import { ArrowRight, BookOpen, GraduationCap, Landmark, Map as MapIcon, Search, Sparkles, Target, X } from 'lucide-react'
@@ -28,8 +28,10 @@ export default function Home() {
   const [progress] = useState(loadProgress)
   const inputRef = useRef(null)
 
-  const foundTopics = useMemo(() => (q.trim() ? searchTopics(q).slice(0, 6) : []), [q])
-  const foundEvents = useMemo(() => (q.trim() ? filterEvents({ q }).slice(0, 4) : []), [q])
+  // поиск по всем текстам тяжёлый — считаем его с небольшой задержкой, чтобы ввод не тормозил
+  const dq = useDeferredValue(q)
+  const foundTopics = useMemo(() => (dq.trim() ? searchTopics(dq).slice(0, 6) : []), [dq])
+  const foundEvents = useMemo(() => (dq.trim() ? filterEvents({ q: dq }).slice(0, 4) : []), [dq])
 
   const daily = useMemo(() => topics[new Date().getDate() % Math.max(1, topics.length)], [])
   const doneTopics = topics.filter((t) => progress['topic:' + t.id]).length

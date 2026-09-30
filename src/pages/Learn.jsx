@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { ArrowRight, BookOpen, Search, X } from 'lucide-react'
@@ -10,8 +10,8 @@ import { stagger, staggerItem } from '../components/Reveal.jsx'
 
 const GROUPS = [
   { id: 'all', label: 'Все классы' },
-  { id: 'basic', label: '6–9 классы · ОГЭ' },
-  { id: 'senior', label: '10–11 классы · ЕГЭ' },
+  { id: 'basic', label: '6–9 классы' },
+  { id: 'senior', label: '10–11 классы' },
 ]
 
 const inGroup = (c, g) => g === 'all' || (g === 'basic' ? c.exams.includes('oge') : !c.exams.includes('oge'))
@@ -29,7 +29,8 @@ export default function Learn() {
   }, [])
 
   const courses = COURSES.filter((c) => inGroup(c, group))
-  const found = useMemo(() => searchTopics(q), [q])
+  const dq = useDeferredValue(q)
+  const found = useMemo(() => searchTopics(dq), [dq])
 
   return (
     <div className="learn">

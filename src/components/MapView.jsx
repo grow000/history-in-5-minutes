@@ -57,13 +57,13 @@ export default function MapView({ map }) {
   const types = [...new Set((map.points ?? []).map((p) => p.type ?? 'place'))]
 
   return (
-    <div className="mapview">
+    <div className={'mapview' + (dark ? ' mapview--dark' : '')}>
       <div className="mapview__frame">
         <MapContainer center={center} zoom={map.zoom ?? 5} scrollWheelZoom={false} className="mapview__map">
           <TileLayer
-            key={dark ? 'dark' : 'light'}
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url={`https://{s}.basemaps.cartocdn.com/${dark ? 'dark_all' : 'rastertiles/voyager'}/{z}/{x}/{y}{r}.png`}
+            attribution='&copy; участники <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={18}
           />
           {!map.center && <FitBounds bounds={bounds} />}
           {(map.routes ?? []).map((r, i) => (

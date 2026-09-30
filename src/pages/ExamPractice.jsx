@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, RotateCcw, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, RotateCcw, Timer, X } from 'lucide-react'
 import LazyMap from '../components/LazyMap.jsx'
-import { checkTask, coursesById, EXAMS, formatAnswer, maxPoints, TASK_TYPES, tasksFor, topicsById } from '../data/course.js'
+import { checkTask, coursesById, EXAM_LINES, EXAMS, PERIODS, formatAnswer, lineOf, maxPoints, TASK_TYPES, tasksFor, topicsById } from '../data/course.js'
 import { plural } from '../data/index.js'
 import { saveResult } from '../progress.js'
 
@@ -40,26 +40,77 @@ export default function ExamPractice() {
   const n = Number(params.get('n')) || 0
   const seed = Number(params.get('seed')) || 1
   const only = params.get('ids')
+  const line = params.get('line')
+  const period = params.get('period')
+  // pick=1:3,2:5 — сколько заданий каждого номера КИМ решать
+  const pickParam = params.get('pick')
+  const picks = useMemo(
+    () =>
+      (pickParam ?? '')
+        .split(',')
+        .map((p) => p.split(':'))
+        .filter(([id, k]) => id && Number(k) > 0)
+        .map(([id, k]) => ({ id, k: Number(k) })),
+    [pickParam]
+  )
 
   const list = useMemo(() => {
     if (only) return only.split(',').map((id) => tasksFor({}).find((t) => t.id === id)).filter(Boolean)
-    const pool = tasksFor({ exam, course, topic, type })
+    if (exam && picks.length) {
+      const lines = EXAM_LINES[exam]
+      return [...picks]
+        .sort((a, b) => lines.findIndex((l) => l.id === a.id) - lines.findIndex((l) => l.id === b.id))
+        .flatMap(({ id, k }, i) => pick(tasksFor({ exam, course, period, line: id }), k, seed + i * 7919))
+    }
+    const pool = tasksFor({ exam, course, topic, type, line, period })
     const picked = pick(pool, n, seed)
-    // вариант: упорядочиваем по типу, как в КИМ
-    const order = Object.keys(TASK_TYPES)
-    return n ? picked.sort((a, b) => order.indexOf(a.type) - order.indexOf(b.type)) : picked
-  }, [exam, course, topic, type, n, seed, only])
+    // вариант: упорядочиваем по номерам заданий, как в КИМ
+    if (n && exam) {
+      const lines = EXAM_LINES[exam]
+      const idx = (t) => lines.indexOf(lineOf(t, exam))
+      return picked.sort((a, b) => idx(a) - idx(b))
+    }
+    return picked
+  }, [exam, course, topic, type, line, period, n, seed, only, picks])
 
   const [answers, setAnswers] = useState({})
   const [checked, setChecked] = useState(false)
+  const examMode = params.get('mode') === 'exam'
+  const [startedAt, setStartedAt] = useState(() => Date.now())
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (checked) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [checked])
+  const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000))
+  const clock = `${String(Math.floor(elapsed / 60)).padStart(2, '0')}:${String(elapsed % 60).padStart(2, '0')}`
   const topRef = useRef(null)
 
   useEffect(() => {
     setAnswers({})
     setChecked(false)
+    setStartedAt(Date.now())
+    setNow(Date.now())
   }, [list])
 
-  const title = topic
+  const findLine = (id) => EXAM_LINES[exam]?.find((x) => x.id === id)
+  const lineTitle = (id) => {
+    const l = findLine(id)
+    return l ? (l.n === '+' ? l.title : `№ ${l.n}. ${l.title}`) : null
+  }
+  const shortLine = (id) => (findLine(id)?.n === '+' ? 'доп.' : `№ ${findLine(id)?.n}`)
+  const title = examMode
+    ? `${EXAMS[exam]?.title ?? ''}: часть 1 по номерам КИМ`
+    : picks.length
+    ? picks.length === 1
+      ? lineTitle(picks[0].id)
+      : `Свой вариант: ${picks.map((p) => `${shortLine(p.id)} × ${p.k}`).join(', ')}`
+    : line
+      ? lineTitle(line)
+      : period
+        ? `${PERIODS.find((p) => p.id === period)?.title ?? 'Период'}${n ? ` · вариант из ${n}` : ''}`
+      : topic
     ? topicsById[topic]?.title
     : course
       ? coursesById[course]?.title
@@ -133,8 +184,8 @@ export default function ExamPractice() {
               <div className="practice-result__text">
                 <h2>{score === max ? 'Всё верно!' : score / max >= 0.7 ? 'Хороший результат' : 'Есть над чем поработать'}</h2>
                 <p>
-                  Верно решено {results.filter((r) => r.points === r.max).length} из {list.length}. Ниже — разбор каждого
-                  задания.
+                  Верно решено {results.filter((r) => r.points === r.max).length} из {list.length} за {clock}. Ниже — разбор
+                  каждого задания.
                 </p>
                 <div className="practice-result__actions">
                   {wrong.length > 0 && (
@@ -175,13 +226,17 @@ export default function ExamPractice() {
               value={answers[t.id] ?? ''}
               onChange={(v) => setAnswers((a) => ({ ...a, [t.id]: v }))}
               result={checked ? results[i] : null}
+              exam={exam}
             />
           ))}
         </ol>
 
         {!checked && (
           <div className="practice-bar">
-            <span>
+            <span className="practice-bar__info">
+              <span className="practice-bar__clock" aria-label="Прошло времени">
+                <Timer size={16} /> {clock}
+              </span>
               Ответов: {answered} из {list.length}
             </span>
             <button type="button" className="btn btn--primary" onClick={check}>
@@ -194,7 +249,8 @@ export default function ExamPractice() {
   )
 }
 
-function TaskCard({ task, index, value, onChange, result }) {
+function TaskCard({ task, index, value, onChange, result, exam }) {
+  const kim = lineOf(task, exam ?? task.exam[0])
   const status = result ? (result.points === result.max ? 'ok' : result.points > 0 ? 'part' : 'bad') : null
   const topic = topicsById[task.topic]
 
@@ -209,7 +265,8 @@ function TaskCard({ task, index, value, onChange, result }) {
     >
       <div className="task__head">
         <span className="task__num">{index}</span>
-        <span className="task__type">{TASK_TYPES[task.type]?.title}</span>
+        {kim && <span className="task__kim">{kim.n === '+' ? 'Доп.' : `№ ${kim.n}`}</span>}
+        <span className="task__type">{kim ? kim.title : TASK_TYPES[task.type]?.title}</span>
         <span className="task__exam">{task.exam.map((e) => EXAMS[e].title).join(' · ')}</span>
         {result && (
           <span className={`task__points task__points--${status}`}>
@@ -297,8 +354,13 @@ function TaskCard({ task, index, value, onChange, result }) {
 
       {result && (
         <motion.div className="task__solution" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
-          <div>
-            <b>Правильный ответ:</b> {formatAnswer(task)}
+          <div className="task__answers">
+            <span>
+              <b>Твой ответ:</b> {value.trim() ? value.replace(/\s+/g, '') : '—'}
+            </span>
+            <span>
+              <b>Правильный ответ:</b> {formatAnswer(task)}
+            </span>
           </div>
           {task.explanation && <p>{task.explanation}</p>}
           {topic && (
