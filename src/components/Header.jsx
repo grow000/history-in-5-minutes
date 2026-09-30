@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { Menu, Moon, Sun, X } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { BookOpen, ChartNoAxesColumn, GraduationCap, Home, Landmark, Moon, Sun } from 'lucide-react'
+import Logo from './Logo.jsx'
 
 export const NAV = [
-  { to: '/learn', label: 'Курс', match: (p) => p.startsWith('/learn') || p.startsWith('/topic') },
-  { to: '/exam', label: 'ЕГЭ и ОГЭ', match: (p) => p.startsWith('/exam') },
-  { to: '/events', label: 'События', match: (p) => p.startsWith('/events') || p.startsWith('/event/') },
-  { to: '/progress', label: 'Прогресс', match: (p) => p.startsWith('/progress') },
+  { to: '/', label: 'Главная', icon: Home, match: (p) => p === '/' },
+  { to: '/learn', label: 'Курс истории', short: 'Курс', icon: BookOpen, match: (p) => p.startsWith('/learn') || p.startsWith('/topic') },
+  { to: '/exam', label: 'ЕГЭ и ОГЭ', short: 'ЕГЭ·ОГЭ', icon: GraduationCap, match: (p) => p.startsWith('/exam') },
+  { to: '/events', label: 'События', icon: Landmark, match: (p) => p.startsWith('/events') || p.startsWith('/event/') },
+  { to: '/progress', label: 'Прогресс', icon: ChartNoAxesColumn, match: (p) => p.startsWith('/progress') },
 ]
 
 function getInitialTheme() {
@@ -17,10 +20,15 @@ function getInitialTheme() {
 
 export default function Header() {
   const [theme, setTheme] = useState(getInitialTheme)
-  const [open, setOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
   const { pathname } = useLocation()
 
-  useEffect(() => setOpen(false), [pathname])
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
 
   const toggleTheme = () => {
     const next = theme === 'dark' ? 'light' : 'dark'
@@ -34,53 +42,55 @@ export default function Header() {
   }
 
   return (
-    <header className={'gnav' + (open ? ' is-open' : '')}>
-      <div className="gnav__inner">
-        <Link to="/" className="gnav__brand" aria-label="История за 5 минут — на главную">
-          История за 5 минут
-        </Link>
-        <nav className="gnav__links" aria-label="Основная навигация">
-          {NAV.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={'gnav__link' + (item.match(pathname) ? ' is-active' : '')}
-              aria-current={item.match(pathname) ? 'page' : undefined}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="gnav__actions">
+    <>
+      <header className={'header' + (scrolled ? ' header--scrolled' : '')}>
+        <div className="container header__inner">
+          <Link to="/" className="brand" aria-label="История за 5 минут — на главную">
+            <Logo />
+            <span className="brand__text">
+              История <span className="brand__accent">за 5 минут</span>
+            </span>
+          </Link>
+          <nav className="topnav" aria-label="Основная навигация">
+            {NAV.map((item) => {
+              const active = item.match(pathname)
+              const Icon = item.icon
+              return (
+                <Link key={item.to} to={item.to} className={'topnav__link' + (active ? ' is-active' : '')} aria-current={active ? 'page' : undefined} title={item.label}>
+                  {active && <motion.span layoutId="topnav-pill" className="topnav__pill" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+                  <Icon size={17} aria-hidden="true" />
+                  <span>{item.label}</span>
+                </Link>
+              )
+            })}
+          </nav>
           <button
             type="button"
-            className="gnav__icon"
+            className="icon-btn"
             onClick={toggleTheme}
-            aria-label={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
+            aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
             title={theme === 'dark' ? 'Светлая тема' : 'Тёмная тема'}
           >
-            {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
-          </button>
-          <button
-            type="button"
-            className="gnav__icon gnav__menu"
-            onClick={() => setOpen((o) => !o)}
-            aria-label={open ? 'Закрыть меню' : 'Открыть меню'}
-            aria-expanded={open}
-          >
-            {open ? <X size={19} /> : <Menu size={19} />}
+            <motion.span key={theme} initial={{ rotate: -90, scale: 0.4, opacity: 0 }} animate={{ rotate: 0, scale: 1, opacity: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 20 }} style={{ display: 'grid' }}>
+              {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+            </motion.span>
           </button>
         </div>
-      </div>
-      {open && (
-        <nav className="gnav__sheet" aria-label="Меню">
-          {NAV.map((item) => (
-            <Link key={item.to} to={item.to} className={'gnav__sheet-link' + (item.match(pathname) ? ' is-active' : '')}>
-              {item.label}
+      </header>
+
+      <nav className="bottomnav" aria-label="Навигация">
+        {NAV.map((item) => {
+          const active = item.match(pathname)
+          const Icon = item.icon
+          return (
+            <Link key={item.to} to={item.to} className={'bottomnav__link' + (active ? ' is-active' : '')} aria-current={active ? 'page' : undefined}>
+              {active && <motion.span layoutId="bottomnav-pill" className="bottomnav__pill" transition={{ type: 'spring', stiffness: 500, damping: 40 }} />}
+              <Icon size={21} aria-hidden="true" />
+              <span>{item.short ?? item.label}</span>
             </Link>
-          ))}
-        </nav>
-      )}
-    </header>
+          )
+        })}
+      </nav>
+    </>
   )
 }

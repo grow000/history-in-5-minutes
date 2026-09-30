@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import {
+  ArrowLeft, ArrowRight, BookOpen, CalendarDays, GraduationCap, Lightbulb, Map as MapIcon,
+  Star, Table, Target, Users,
+} from 'lucide-react'
+import Tabs, { TabPanel } from '../components/Tabs.jsx'
 import Reveal from '../components/Reveal.jsx'
 import DataTable from '../components/DataTable.jsx'
 import LazyMap from '../components/LazyMap.jsx'
@@ -8,33 +13,51 @@ import { coursesById, neighbours, SOURCES, tasksFor, topicsById } from '../data/
 import { loadProgress } from '../progress.js'
 import NotFound from './NotFound.jsx'
 
+function initials(name) {
+  return name
+    .replace(/[«»"()]/g, '')
+    .split(/\s+/)
+    .filter((w) => /^[A-ZА-ЯЁ]/.test(w))
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+}
+
 export default function TopicPage({ id }) {
   const topic = topicsById[id]
   if (!topic) return <NotFound text="Такой темы пока нет в курсе." />
   return <TopicContent topic={topic} />
 }
 
-// Карта подгружается, только когда до неё доскроллили
-function MapWhenVisible({ map }) {
-  const ref = useRef(null)
-  const [visible, setVisible] = useState(false)
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setVisible(true), { rootMargin: '400px 0px' })
-    io.observe(el)
-    return () => io.disconnect()
-  }, [])
-  return <div ref={ref}>{visible ? <LazyMap map={map} /> : <div className="mapview__skeleton">Карта</div>}</div>
-}
-
 function TopicContent({ topic }) {
   const course = coursesById[topic.course]
   const chapter = course.chapters.find((c) => c.n === topic.chapter)
-  const [params] = useSearchParams()
+  const [params, setParams] = useSearchParams()
+  const navigate = useNavigate()
   const { prev, next } = neighbours(topic.id)
   const [result] = useState(() => loadProgress()['topic:' + topic.id])
-  const examCount = tasksFor({ topic: topic.id }).length
+  const examTasks = useMemo(() => tasksFor({ topic: topic.id }), [topic.id])
+  const contentRef = useRef(null)
+
+  // Три лёгкие вкладки вместо пяти
+  const hasVisual = Boolean(topic.map || topic.table)
+  const tabs = [
+    { id: 'text', label: 'Конспект' },
+    hasVisual && { id: 'visual', label: topic.map && topic.table ? 'Карта и таблица' : topic.map ? 'Карта' : 'Таблица' },
+    { id: 'terms', label: 'Термины и личности' },
+  ].filter(Boolean)
+
+  // вкладку можно задать явно (?tab=) или вывести из раздела, на который ведёт ссылка из теста (?s=)
+  const sectionTab = { terms: 'terms', dates: 'terms', people: 'terms', map: 'visual', table: 'visual' }
+  const requested = params.get('tab') ?? sectionTab[params.get('s')] ?? 'text'
+  const tab = tabs.some((t) => t.id === requested) ? requested : 'text'
+  const setTab = (t) => {
+    const p = new URLSearchParams(params)
+    if (t === 'text') p.delete('tab')
+    else p.set('tab', t)
+    p.delete('s')
+    setParams(p, { replace: true })
+  }
 
   useEffect(() => {
     document.title = `${topic.title} — История за 5 минут`
@@ -43,9 +66,9 @@ function TopicContent({ topic }) {
     }
   }, [topic.title])
 
-  // Переход из теста к нужному разделу: ?s=<раздел>
+  // Переход из теста к нужному разделу: ?s=<id раздела>
   useEffect(() => {
-    const target = params.get('s') ?? params.get('tab')
+    const target = params.get('s')
     if (!target) return
     const t = setTimeout(() => {
       const el = document.getElementById('sec-' + target)
@@ -53,69 +76,156 @@ function TopicContent({ topic }) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' })
       el.classList.add('section--flash')
       setTimeout(() => el.classList.remove('section--flash'), 2600)
-    }, 300)
+    }, 450)
     return () => clearTimeout(t)
-  }, [params])
-
-  const jump = [
-    { id: 'text', label: 'Конспект' },
-    topic.map && { id: 'map', label: 'Карта' },
-    topic.table && { id: 'table', label: 'Таблица' },
-    { id: 'terms', label: 'Термины и даты' },
-    { id: 'people', label: 'Личности' },
-  ].filter(Boolean)
+  }, [params, tab])
 
   return (
-    <article className="container container--narrow simple-page topic-min">
-      <header className="simple-head">
-        <Link to={`/learn/${course.id}`} className="back-crumb">
-          {course.grade} · {course.title}
-        </Link>
-        <p className="eyebrow">
-          Глава {chapter?.n}. {chapter?.title}
-          {topic.paragraphs && ` · ${topic.paragraphs}`}
-        </p>
-        <h1>{topic.title}</h1>
-        <p className="lead-muted">{topic.period}</p>
-        <p className="topic-min__summary">{topic.summary}</p>
-        <div className="row-actions">
-          <Link to={`/topic/${topic.id}/quiz`} className="btn btn--primary">
-            {result ? `Тест · лучший ${result.best}/${result.total}` : 'Пройти тест'}
-          </Link>
-          {examCount > 0 && (
-            <Link to={`/exam/practice?topic=${topic.id}`} className="text-link">
-              Задания ЕГЭ/ОГЭ <ChevronRight size={18} />
+    <article className="topic" style={{ '--era': course.color }}>
+      <header className="event-hero topic-hero">
+        <div className="event-hero__glow" aria-hidden="true" />
+        <div className="container event-hero__inner">
+          <nav className="breadcrumbs" aria-label="Навигационная цепочка">
+            <Link to="/learn">Курс истории</Link>
+            <span aria-hidden="true">/</span>
+            <Link to={`/learn/${course.id}`}>{course.short}</Link>
+          </nav>
+          <div className="topic-hero__chapter">
+            Глава {chapter?.n}. {chapter?.title}
+            {topic.paragraphs && <span> · {topic.paragraphs}</span>}
+          </div>
+          <h1 className="event-hero__title">{topic.title}</h1>
+          <div className="event-hero__meta">
+            <span className="meta-item">
+              <CalendarDays size={15} /> {topic.period}
+            </span>
+            <span className="meta-item">
+              <BookOpen size={15} /> {topic.sections.length} разделов
+            </span>
+            {topic.exam?.ege && <span className="meta-item meta-item--exam">ЕГЭ</span>}
+            {topic.exam?.oge && <span className="meta-item meta-item--exam">ОГЭ</span>}
+          </div>
+          <p className="event-hero__summary">{topic.summary}</p>
+          <div className="event-hero__actions">
+            <Link to={`/topic/${topic.id}/quiz`} className="btn btn--light">
+              <Target size={18} /> {result ? `Тест по теме · лучший ${result.best}/${result.total}` : 'Тест по теме'}
             </Link>
-          )}
+            {examTasks.length > 0 && (
+              <Link to={`/exam/practice?topic=${topic.id}`} className="btn btn--outline-light">
+                <GraduationCap size={18} /> Задания ЕГЭ/ОГЭ · {examTasks.length}
+              </Link>
+            )}
+          </div>
         </div>
-        <nav className="jump-links" aria-label="На странице">
-          {jump.map((j) => (
-            <a
-              key={j.id}
-              href={`#sec-${j.id}`}
-              onClick={(e) => {
-                e.preventDefault()
-                document.getElementById('sec-' + j.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }}
-            >
-              {j.label}
-            </a>
-          ))}
-        </nav>
       </header>
 
-      <section id="sec-text" className="tsection">
-        <p className="lead">{topic.intro}</p>
-      </section>
+      <div className="topic-tabs-bar">
+        <div className="container">
+          <Tabs tabs={tabs} value={tab} onChange={setTab} layoutId="topic-tabs" label="Разделы темы" variant="underline" />
+        </div>
+      </div>
 
-      {topic.sections.map((s) => (
-        <Reveal as="section" key={s.id} className="tsection" id={`sec-${s.id}`}>
-          <h2>{s.title}</h2>
+      <div className="container topic-body" ref={contentRef}>
+        <>
+          <TabPanel id={tab} layoutId="topic-tabs" key={tab}>
+            {tab === 'text' && <TextTab topic={topic} />}
+            {tab === 'visual' && (
+              <>
+                {topic.map && (
+                  <section className="topic-panel" id="sec-map">
+                    <h2 className="panel-title">
+                      <MapIcon size={22} /> {topic.map.title}
+                    </h2>
+                    <LazyMap map={topic.map} />
+                  </section>
+                )}
+                {topic.table && (
+                  <section className="topic-panel" id="sec-table">
+                    <h2 className="panel-title">
+                      <Table size={22} /> {topic.table.title || 'Таблица'}
+                    </h2>
+                    <DataTable table={{ ...topic.table, title: null }} />
+                  </section>
+                )}
+              </>
+            )}
+            {tab === 'terms' && (
+              <>
+                <TermsTab topic={topic} />
+                <PeopleTab topic={topic} />
+              </>
+            )}
+          </TabPanel>
+        </>
+
+        <Reveal className="quiz-cta">
+          <div className="quiz-cta__icon" aria-hidden="true">
+            <Target size={40} />
+          </div>
+          <div className="quiz-cta__text">
+            <h2>Проверь себя</h2>
+            <p>
+              {topic.quiz.length} вопросов с объяснениями. По ошибкам подскажем, какой раздел повторить.
+            </p>
+          </div>
+          <button type="button" onClick={() => navigate(`/topic/${topic.id}/quiz`)} className="btn btn--primary btn--lg">
+            Начать тест
+          </button>
+        </Reveal>
+
+        <p className="source-note">
+          <BookOpen size={15} /> Материал составлен по учебнику: {SOURCES[course.source]?.short}
+          {topic.paragraphs ? `, ${topic.paragraphs}` : ''}. Текст — авторский пересказ для повторения.{' '}
+          <Link to="/sources">Все источники</Link>
+        </p>
+
+        <nav className="pager" aria-label="Соседние темы">
+          {prev ? (
+            <Link to={`/topic/${prev.id}`} className="pager__link">
+              <small>
+                <ArrowLeft size={14} /> Предыдущая тема
+              </small>
+              <span>{prev.title}</span>
+            </Link>
+          ) : (
+            <span />
+          )}
+          {next ? (
+            <Link to={`/topic/${next.id}`} className="pager__link pager__link--next">
+              <small>
+                Следующая тема <ArrowRight size={14} />
+              </small>
+              <span>{next.title}</span>
+            </Link>
+          ) : (
+            <span />
+          )}
+        </nav>
+      </div>
+    </article>
+  )
+}
+
+function TextTab({ topic }) {
+  return (
+    <div className="topic-text">
+      <Reveal>
+        <p className="lead">{topic.intro}</p>
+      </Reveal>
+
+      {topic.sections.map((s, i) => (
+        <Reveal key={s.id} as="section" className="tsection" id={`sec-${s.id}`}>
+          <h2 className="tsection__title">
+            <span className="tsection__num">{i + 1}</span>
+            {s.title}
+          </h2>
           {s.paragraphs?.map((p, j) => (
-            <p key={j}>{p}</p>
+            <p key={j} className="tsection__p">
+              {p}
+            </p>
           ))}
           {s.list?.length > 0 && (
-            <ul className="dot-list">
+            <ul className="tsection__list">
               {s.list.map((item, j) => (
                 <li key={j}>{item}</li>
               ))}
@@ -124,105 +234,117 @@ function TopicContent({ topic }) {
         </Reveal>
       ))}
 
-      {topic.map && (
-        <section className="tsection" id="sec-map">
-          <h2>{topic.map.title}</h2>
-          <MapWhenVisible map={topic.map} />
-        </section>
-      )}
+      <Reveal as="section" className="tsection" id="sec-facts">
+        <h2 className="tsection__title">
+          <span className="tsection__num">
+            <Lightbulb size={16} />
+          </span>
+          Интересные факты
+        </h2>
+        <div className="facts">
+          {topic.facts.map((f, i) => (
+            <motion.div
+              key={i}
+              className="fact"
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.06, duration: 0.45 }}
+            >
+              <span className="fact__num">{String(i + 1).padStart(2, '0')}</span>
+              <p>{f}</p>
+            </motion.div>
+          ))}
+        </div>
+      </Reveal>
 
-      {topic.table && (
-        <section className="tsection" id="sec-table">
-          <h2>{topic.table.title || 'Таблица'}</h2>
-          <DataTable table={{ ...topic.table, title: null }} />
-        </section>
-      )}
+      <Reveal as="section" className="tsection" id="sec-significance">
+        <h2 className="tsection__title">
+          <span className="tsection__num">
+            <Star size={16} />
+          </span>
+          Итоги и значение
+        </h2>
+        <div className="meaning">
+          <p>{topic.significance}</p>
+        </div>
+      </Reveal>
+    </div>
+  )
+}
 
-      <section className="tsection" id="sec-terms">
-        <h2>Термины</h2>
-        <dl className="defs">
-          {topic.terms.map((t) => (
-            <div key={t.term}>
+function TermsTab({ topic }) {
+  return (
+    <div className="topic-panel">
+      <section id="sec-terms">
+        <h2 className="panel-title">
+          <BookOpen size={22} /> Термины и понятия
+        </h2>
+        <dl className="terms">
+          {topic.terms.map((t, i) => (
+            <motion.div
+              key={t.term}
+              className="term"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.04 }}
+            >
               <dt>{t.term}</dt>
               <dd>{t.definition}</dd>
-            </div>
+            </motion.div>
           ))}
         </dl>
       </section>
+      <section id="sec-dates" className="topic-panel__block">
+        <h2 className="panel-title">
+          <CalendarDays size={22} /> Главные даты
+        </h2>
+        <ol className="timeline">
+          {topic.dates.map((t, i) => (
+            <motion.li
+              key={i}
+              className="timeline__item"
+              initial={{ opacity: 0, x: -12 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05 }}
+            >
+              <span className="timeline__dot" aria-hidden="true" />
+              <div className="timeline__date">{t.date}</div>
+              <div className="timeline__text">{t.text}</div>
+            </motion.li>
+          ))}
+        </ol>
+      </section>
+    </div>
+  )
+}
 
-      <section className="tsection" id="sec-dates">
-        <h2>Даты</h2>
-        <dl className="defs defs--dates">
-          {topic.dates.map((d, i) => (
-            <div key={i}>
-              <dt>{d.date}</dt>
-              <dd>{d.text}</dd>
+function PeopleTab({ topic }) {
+  return (
+    <section className="topic-panel" id="sec-people">
+      <h2 className="panel-title">
+        <Users size={22} /> Исторические личности
+      </h2>
+      <div className="people">
+        {topic.people.map((p, i) => (
+          <motion.div
+            key={p.name}
+            className="person"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.05 }}
+          >
+            <div className="person__avatar" aria-hidden="true">
+              {initials(p.name) || '•'}
             </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="tsection" id="sec-people">
-        <h2>Личности</h2>
-        <dl className="defs">
-          {topic.people.map((p) => (
-            <div key={p.name}>
-              <dt>
-                {p.name}
-                {p.years && <span className="defs__years"> {p.years}</span>}
-              </dt>
-              <dd>{p.role}</dd>
+            <div>
+              <div className="person__name">{p.name}</div>
+              {p.years && <div className="person__years">{p.years}</div>}
+              <div className="person__role">{p.role}</div>
             </div>
-          ))}
-        </dl>
-      </section>
-
-      <section className="tsection" id="sec-facts">
-        <h2>Интересные факты</h2>
-        <ul className="dot-list">
-          {topic.facts.map((f, i) => (
-            <li key={i}>{f}</li>
-          ))}
-        </ul>
-      </section>
-
-      <section className="tsection" id="sec-significance">
-        <h2>Итоги и значение</h2>
-        <p>{topic.significance}</p>
-      </section>
-
-      <section className="cta-min">
-        <h2>Проверь себя</h2>
-        <p className="lead-muted">
-          {topic.quiz.length} вопросов. После каждого ответа — объяснение, а по ошибкам подскажем, что повторить.
-        </p>
-        <Link to={`/topic/${topic.id}/quiz`} className="btn btn--primary">
-          Пройти тест
-        </Link>
-      </section>
-
-      <p className="source-line">
-        Материал составлен по учебнику: {SOURCES[course.source]?.short}
-        {topic.paragraphs ? `, ${topic.paragraphs}` : ''}. Текст — краткий пересказ для повторения.{' '}
-        <Link to="/sources">Источники</Link>
-      </p>
-
-      <nav className="pager-min" aria-label="Соседние темы">
-        {prev ? (
-          <Link to={`/topic/${prev.id}`}>
-            <ChevronLeft size={18} /> {prev.title}
-          </Link>
-        ) : (
-          <span />
-        )}
-        {next ? (
-          <Link to={`/topic/${next.id}`} className="pager-min__next">
-            {next.title} <ChevronRight size={18} />
-          </Link>
-        ) : (
-          <span />
-        )}
-      </nav>
-    </article>
+          </motion.div>
+        ))}
+      </div>
+    </section>
   )
 }

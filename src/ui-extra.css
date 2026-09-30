@@ -1,0 +1,297 @@
+/* =====================================================================
+   Лёгкие вкладки и стили страницы «Мой прогресс»
+   ===================================================================== */
+
+/* ---------- Вкладки: легче, без заливки и тяжёлых теней ---------- */
+.tabs {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  gap: 4px;
+}
+
+.tabs__tab {
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.tabs__indicator {
+  background: var(--primary-soft);
+  box-shadow: none;
+  border-radius: 999px;
+}
+
+.tabs__tab.is-active {
+  color: var(--primary);
+}
+
+.tabs--big .tabs__tab {
+  padding: 10px 28px;
+  font-size: 17px;
+}
+
+.tabs--big .tabs__indicator {
+  background: var(--primary-soft);
+}
+
+.tabs--big .tabs__tab.is-active {
+  color: var(--primary);
+}
+
+.tabs--underline .tabs__tab {
+  padding: 14px 14px 12px;
+  border-radius: 0;
+}
+
+.tabs--underline .tabs__indicator {
+  inset: auto 14px 0 14px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--era, var(--primary));
+}
+
+.tabs--underline .tabs__tab.is-active {
+  color: var(--text);
+}
+
+.topic-tabs-bar {
+  border-bottom: 1px solid var(--border);
+}
+
+/* ---------- Главная: три счётчика и «Продолжить» ---------- */
+.hero__stats {
+  grid-template-columns: repeat(3, auto);
+}
+
+@media (max-width: 560px) {
+  .hero__stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.continue-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 18px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--muted);
+  animation: rise 0.7s 0.3s var(--ease) both;
+}
+
+.continue-line b {
+  color: var(--text);
+}
+
+.continue-line:hover {
+  border-color: var(--primary);
+}
+
+/* ---------- Простые страницы (Мой прогресс) ---------- */
+.simple-page {
+  padding-top: 48px;
+  padding-bottom: 80px;
+}
+
+.simple-head h1 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 48px);
+  font-weight: 800;
+}
+
+.lead-muted {
+  margin-top: 10px;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.lead-muted.small,
+.small {
+  font-size: 14px;
+}
+
+.simple-section {
+  margin-top: 44px;
+}
+
+.simple-section h2 {
+  font-size: 24px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+
+.row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.plain-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.plain-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  transition: border-color 0.2s, transform 0.25s var(--ease);
+}
+
+a.plain-row:hover {
+  border-color: var(--primary);
+  transform: translateX(3px);
+}
+
+.plain-row__sub {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.plain-row__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  font-size: 14px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.link-btn {
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+
+@media (max-width: 560px) {
+  .stat-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-tile {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.stat-tile b {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.stat-tile span {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.thin-bar {
+  height: 4px;
+  margin: 6px 4px 0;
+  border-radius: 4px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.thin-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+}
+
+.empty-block {
+  margin-top: 32px;
+  padding: 32px 24px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  text-align: center;
+}
+
+.empty-block .row-actions {
+  justify-content: center;
+}
+
+.btn--text-danger {
+  border: 0;
+  background: none;
+  color: var(--bad);
+  font-weight: 700;
+  padding: 10px 8px;
+}
+
+.notice-line {
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ---------- Реальные задания ---------- */
+.real-tasks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.real-task {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  border-radius: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  transition: border-color 0.2s, transform 0.3s var(--ease);
+}
+
+.real-task:hover {
+  border-color: var(--primary);
+  transform: translateY(-3px);
+}
+
+.real-task b {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.real-task span {
+  font-size: 14px;
+  color: var(--muted);
+}
