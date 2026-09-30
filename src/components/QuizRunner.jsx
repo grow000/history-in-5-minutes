@@ -206,7 +206,7 @@ export default function QuizRunner({ questions: source, accent, badge, back, pre
             </div>
           </div>
           <div className="quiz-bar" aria-hidden="true">
-            <motion.span animate={{ width: `${((step + (selected !== null ? 1 : 0)) / total) * 100}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
+            <motion.span initial={{ width: 0 }} animate={{ width: `${((step + (selected !== null ? 1 : 0)) / total) * 100}%` }} transition={{ type: 'spring', stiffness: 120, damping: 20 }} />
           </div>
         </div>
 

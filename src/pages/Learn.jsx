@@ -1,25 +1,15 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ArrowRight, BookOpen, Search, X } from 'lucide-react'
-import Tabs from '../components/Tabs.jsx'
-import { COURSES, coursesById, searchTopics, SOURCES, topicsOfCourse } from '../data/course.js'
+import { ChevronRight, Search, X } from 'lucide-react'
+import { COURSES, coursesById, searchTopics, topicsOfCourse } from '../data/course.js'
 import { plural } from '../data/index.js'
 import { loadProgress } from '../progress.js'
-import { stagger, staggerItem } from '../components/Reveal.jsx'
-
-const GROUPS = [
-  { id: 'all', label: 'Все классы' },
-  { id: 'basic', label: '6–9 классы' },
-  { id: 'senior', label: '10–11 классы' },
-]
-
-const inGroup = (c, g) => g === 'all' || (g === 'basic' ? c.exams.includes('oge') : !c.exams.includes('oge'))
 
 export default function Learn() {
-  const [group, setGroup] = useState('all')
   const [q, setQ] = useState('')
   const [progress] = useState(loadProgress)
+  const dq = useDeferredValue(q)
+  const found = useMemo(() => searchTopics(dq), [dq])
 
   useEffect(() => {
     document.title = 'Курс истории — История за 5 минут'
@@ -28,126 +18,80 @@ export default function Learn() {
     }
   }, [])
 
-  const courses = COURSES.filter((c) => inGroup(c, group))
-  const dq = useDeferredValue(q)
-  const found = useMemo(() => searchTopics(dq), [dq])
-
   return (
-    <div className="learn">
-      <section className="hero hero--compact">
-        <div className="hero__bg" aria-hidden="true">
-          <span className="blob blob--1" />
-          <span className="blob blob--2" />
+    <div className="container container--narrow simple-page">
+      <header className="simple-head">
+        <h1>Курс истории</h1>
+        <p className="lead-muted">Все темы учебников «История России» В. Р. Мединского и А. В. Торкунова, 6–11 классы.</p>
+        <div className="search">
+          <Search className="search__icon" size={20} aria-hidden="true" />
+          <input
+            type="search"
+            className="search__input"
+            placeholder="Найти тему"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Поиск по темам курса"
+            autoComplete="off"
+          />
+          {q && (
+            <button type="button" className="search__clear" onClick={() => setQ('')} aria-label="Очистить поиск">
+              <X size={16} />
+            </button>
+          )}
         </div>
-        <div className="container hero__inner">
-          <span className="pill hero__pill">
-            <BookOpen size={15} /> По учебникам под ред. В. Р. Мединского
-          </span>
-          <h1 className="hero__title">
-            Курс <span className="gradient-text">истории</span>
-          </h1>
-          <p className="hero__lead">
-            Все темы школьного курса — от Древней Руси до наших дней. Подробные конспекты, карты, таблицы, термины и
-            тесты с разбором ошибок.
-          </p>
-          <div className="search">
-            <Search className="search__icon" size={22} aria-hidden="true" />
-            <input
-              type="search"
-              className="search__input"
-              placeholder="Найти тему: Пётр I, опричнина, 1812…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              aria-label="Поиск по темам курса"
-              autoComplete="off"
-            />
-            {q && (
-              <button type="button" className="search__clear" onClick={() => setQ('')} aria-label="Очистить поиск">
-                <X size={16} />
-              </button>
-            )}
-          </div>
-        </div>
-      </section>
+      </header>
 
-      <div className="container learn__body">
-        {q ? (
-          <section aria-live="polite">
-            <p className="results-count">
-              {found.length ? `Найдено ${found.length} ${plural(found.length, ['тема', 'темы', 'тем'])}` : 'Ничего не найдено'}
-            </p>
-            <motion.div className="topic-list" variants={stagger} initial="hidden" animate="show" key={q}>
-              {found.map((t) => (
-                <TopicRow key={t.id} topic={t} done={progress['topic:' + t.id]} showCourse />
-              ))}
-            </motion.div>
-          </section>
-        ) : (
-          <>
-            <Tabs tabs={GROUPS} value={group} onChange={setGroup} layoutId="learn-groups" label="Разделы курса" className="tabs--center" />
-            <motion.div className="course-grid" variants={stagger} initial="hidden" animate="show" key={group}>
-              {courses.map((c) => {
-                const list = topicsOfCourse(c.id)
-                const done = list.filter((t) => progress['topic:' + t.id]).length
-                return (
-                  <motion.div key={c.id} variants={staggerItem}>
-                    <Link to={`/learn/${c.id}`} className="course-card" style={{ '--era': c.color }}>
-                      <div className="course-card__top">
-                        <span className="course-card__grade">{c.grade}</span>
-                        <span className="course-card__period">{c.period}</span>
-                      </div>
-                      <h2 className="course-card__title">{c.title}</h2>
-                      <p className="course-card__book">{SOURCES[c.source]?.short}</p>
-                      <div className="course-card__stats">
-                        <span>
-                          {c.chapters.length} {plural(c.chapters.length, ['глава', 'главы', 'глав'])}
-                        </span>
-                        <span>
-                          {list.length} {plural(list.length, ['тема', 'темы', 'тем'])}
-                        </span>
-                      </div>
-                      <div className="bar" aria-label={`Пройдено ${done} из ${list.length}`}>
-                        <span style={{ width: `${list.length ? (done / list.length) * 100 : 0}%` }} />
-                      </div>
-                      <span className="course-card__go">
-                        Открыть курс <ArrowRight size={17} />
-                      </span>
-                    </Link>
-                  </motion.div>
-                )
-              })}
-            </motion.div>
-          </>
-        )}
-      </div>
+      {q.trim() ? (
+        <section aria-live="polite" className="simple-section">
+          <p className="lead-muted small">{found.length ? `Найдено: ${found.length}` : 'Ничего не найдено'}</p>
+          <ul className="plain-list">
+            {found.map((t) => (
+              <TopicRow key={t.id} topic={t} done={progress['topic:' + t.id]} showCourse />
+            ))}
+          </ul>
+        </section>
+      ) : (
+        <ul className="course-list">
+          {COURSES.map((c) => {
+            const list = topicsOfCourse(c.id)
+            const done = list.filter((t) => progress['topic:' + t.id]).length
+            return (
+              <li key={c.id}>
+                <Link to={`/learn/${c.id}`} className="course-line">
+                  <span className="course-line__grade">{c.grade}</span>
+                  <span className="course-line__main">
+                    <span className="course-line__title">{c.title}</span>
+                    <span className="course-line__meta">
+                      {c.period} · {list.length} {plural(list.length, ['тема', 'темы', 'тем'])}
+                      {done > 0 && ` · пройдено ${done}`}
+                    </span>
+                  </span>
+                  <ChevronRight className="course-line__arrow" size={20} aria-hidden="true" />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
 
 export function TopicRow({ topic, done, showCourse, index }) {
   return (
-    <motion.div variants={staggerItem}>
-      <Link to={`/topic/${topic.id}`} className="topic-row">
-        {index != null && <span className="topic-row__num">{index}</span>}
-        <div className="topic-row__main">
-          <div className="topic-row__title">{topic.title}</div>
-          <div className="topic-row__meta">
+    <li>
+      <Link to={`/topic/${topic.id}`} className="plain-row">
+        <span>
+          {index != null && <span className="plain-row__num">{index}</span>}
+          {topic.title}
+          <small className="plain-row__sub">
             {topic.period}
-            {topic.paragraphs && ` · ${topic.paragraphs}`}
             {showCourse && ` · ${coursesById[topic.course]?.short ?? ''}`}
-          </div>
-        </div>
-        <div className="topic-row__badges">
-          {topic.map && <span className="mini-badge">Карта</span>}
-          {topic.table && <span className="mini-badge">Таблица</span>}
-          {done && (
-            <span className={'mini-badge mini-badge--done' + (done.best === done.total ? ' is-perfect' : '')}>
-              {done.best}/{done.total}
-            </span>
-          )}
-        </div>
-        <ArrowRight className="topic-row__arrow" size={18} aria-hidden="true" />
+          </small>
+        </span>
+        <span className="plain-row__meta">{done ? `${done.best}/${done.total}` : <ChevronRight size={18} />}</span>
       </Link>
-    </motion.div>
+    </li>
   )
 }

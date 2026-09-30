@@ -79,7 +79,7 @@ function EventQuiz({ event }) {
       badge={`${event.emoji} Викторина`}
       back={{ to: `/event/${event.id}`, label: event.title }}
       prevBest={prevBest}
-      onFinish={(score, total) => saveResult(event.id, score, total)}
+      onFinish={(score, total) => saveResult(event.id, score, total, { kind: 'event', title: event.title, to: `/event/${event.id}` })}
       extraActions={
         <>
           <Link to={`/event/${event.id}`} className="btn btn--soft">

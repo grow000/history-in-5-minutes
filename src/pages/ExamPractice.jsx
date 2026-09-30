@@ -5,7 +5,7 @@ import { ArrowLeft, ArrowRight, BookOpen, Check, CheckCheck, RotateCcw, Timer, X
 import LazyMap from '../components/LazyMap.jsx'
 import { checkTask, coursesById, EXAM_LINES, EXAMS, PERIODS, formatAnswer, lineOf, maxPoints, TASK_TYPES, tasksFor, topicsById } from '../data/course.js'
 import { plural } from '../data/index.js'
-import { saveResult } from '../progress.js'
+import { addHistory, saveResult } from '../progress.js'
 
 const LETTERS = ['А', 'Б', 'В', 'Г', 'Д']
 
@@ -134,9 +134,32 @@ export default function ExamPractice() {
 
   const check = () => {
     setChecked(true)
+    let got = 0
+    let total = 0
+    const lines = {}
     list.forEach((t) => {
       const r = checkTask(t, answers[t.id] ?? '')
       saveResult('exam:' + t.id, r.points, r.max)
+      got += r.points
+      total += r.max
+      const l = lineOf(t, exam ?? t.exam[0])
+      if (l) {
+        lines[l.id] = lines[l.id] ?? { n: l.n, points: 0, max: 0 }
+        lines[l.id].points += r.points
+        lines[l.id].max += r.max
+      }
+    })
+    addHistory({
+      kind: 'exam-session',
+      id: 'exam-session',
+      exam: exam ?? list[0]?.exam[0],
+      title,
+      score: got,
+      total,
+      count: list.length,
+      duration: elapsed,
+      lines,
+      to: `/exam/practice?${params.toString()}`,
     })
     setTimeout(() => topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
   }

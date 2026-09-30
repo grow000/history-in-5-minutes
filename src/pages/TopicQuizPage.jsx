@@ -9,11 +9,11 @@ import NotFound from './NotFound.jsx'
 // Куда отправить повторять материал по вопросу теста
 export function reviewLink(topic, sectionKey) {
   const base = `/topic/${topic.id}`
-  if (sectionKey === 'terms') return { to: `${base}?tab=terms&s=terms`, label: `Термины — ${topic.title}` }
-  if (sectionKey === 'dates') return { to: `${base}?tab=terms&s=dates`, label: `Главные даты — ${topic.title}` }
-  if (sectionKey === 'people') return { to: `${base}?tab=people&s=people`, label: `Личности — ${topic.title}` }
-  if (sectionKey === 'map' && topic.map) return { to: `${base}?tab=map`, label: `Карта — ${topic.title}` }
-  if (sectionKey === 'table' && topic.table) return { to: `${base}?tab=table`, label: `Таблица — ${topic.title}` }
+  if (sectionKey === 'terms') return { to: `${base}?s=terms`, label: `Термины — ${topic.title}` }
+  if (sectionKey === 'dates') return { to: `${base}?s=dates`, label: `Главные даты — ${topic.title}` }
+  if (sectionKey === 'people') return { to: `${base}?s=people`, label: `Личности — ${topic.title}` }
+  if (sectionKey === 'map' && topic.map) return { to: `${base}?s=map`, label: `Карта — ${topic.title}` }
+  if (sectionKey === 'table' && topic.table) return { to: `${base}?s=table`, label: `Таблица — ${topic.title}` }
   if (sectionKey === 'facts') return { to: `${base}?s=facts`, label: `Интересные факты — ${topic.title}` }
   if (sectionKey === 'significance') return { to: `${base}?s=significance`, label: `Итоги и значение — ${topic.title}` }
   const s = topic.sections.find((x) => x.id === sectionKey)
@@ -50,7 +50,7 @@ function TopicQuiz({ topic }) {
       badge={`${course.short} · Тест по теме`}
       back={{ to: `/topic/${topic.id}`, label: topic.title }}
       prevBest={prevBest}
-      onFinish={(score, total) => saveResult(key, score, total)}
+      onFinish={(score, total) => saveResult(key, score, total, { kind: 'topic', title: topic.title, to: `/topic/${topic.id}`, course: topic.course })}
       extraActions={
         <>
           <Link to={`/topic/${topic.id}`} className="btn btn--soft">

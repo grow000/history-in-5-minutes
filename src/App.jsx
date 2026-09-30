@@ -14,6 +14,7 @@ import TopicQuizPage from './pages/TopicQuizPage.jsx'
 import ExamHub from './pages/ExamHub.jsx'
 import ExamPractice from './pages/ExamPractice.jsx'
 import Sources from './pages/Sources.jsx'
+import ProgressPage from './pages/ProgressPage.jsx'
 import About from './pages/About.jsx'
 import NotFound from './pages/NotFound.jsx'
 
@@ -61,6 +62,7 @@ function Layout() {
           <Route path="/event/:id" element={<EventRoute />} />
           <Route path="/event/:id/quiz" element={<QuizRoute />} />
           <Route path="/sources" element={<Sources />} />
+          <Route path="/progress" element={<ProgressPage />} />
           <Route path="/about" element={<About />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
