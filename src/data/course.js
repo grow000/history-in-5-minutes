@@ -153,6 +153,8 @@ const isDateMatch = (t) => /год|дат/.test(matchTitles(t)) || (t.right ?? [
 const isCultureMatch = (t) => /произвед|памятник|культур|автор|создател|учён|учен|достижен/.test(matchTitles(t))
 const isPeopleMatch = (t) => /участник|деятел|правител|личност|военачальн|князь|князья/.test(matchTitles(t))
 
+const isWorld = (t) => String(t.course ?? '').startsWith('world')
+
 const matchKind = (t) =>
   t.type !== 'match' ? null : isDateMatch(t) ? 'date' : isCultureMatch(t) ? 'culture' : isPeopleMatch(t) ? 'people' : 'process'
 
@@ -172,10 +174,11 @@ export const EXAM_LINES = {
   oge: [
     { id: '1', n: '1', title: 'Даты: соответствие событий и годов', test: (t) => matchKind(t) === 'date' },
     { id: '2', n: '2', title: 'Хронологическая последовательность', test: (t) => t.type === 'sequence' },
-    { id: '3', n: '3', title: 'Термин по определению', test: (t) => t.type === 'term' },
+    { id: '3', n: '3', title: 'Термин по определению', test: (t) => t.type === 'term' && !isWorld(t) },
     { id: '4', n: '4', title: 'Выбор верных фактов', test: (t) => t.type === 'multi' },
-    { id: '5', n: '5', title: 'Лишний термин в ряду', test: (t) => t.type === 'single' },
-    { id: '8', n: '8–10', title: 'Работа с исторической картой', test: (t) => t.type === 'map' },
+    { id: '5', n: '5', title: 'Лишний термин в ряду', test: (t) => t.type === 'single' && !isWorld(t) },
+    { id: '8', n: '8–10', title: 'Работа с исторической картой', test: (t) => t.type === 'map' && !isWorld(t) },
+    { id: '15', n: '15–17', title: 'Всеобщая история: деятели, факты, источники', test: (t) => isWorld(t) && ['single', 'map', 'term'].includes(t.type) },
     { id: 'culture', n: '+', title: 'Культура: памятники и деятели (к № 13–14)', test: (t) => matchKind(t) === 'culture' },
     { id: 'match', n: '+', title: 'Соответствие: участники, процессы, факты', test: (t) => ['people', 'process'].includes(matchKind(t)) },
   ],
@@ -193,6 +196,13 @@ export const PERIODS = [
   { id: 'ww2', title: 'Великая Отечественная война', range: '1941–1945 гг.', color: '#b91c1c', parts: [{ course: 'rus-10', chapters: [3] }] },
   { id: 'ussr-45-91', title: 'СССР в 1945–1991 гг.', range: 'от восстановления до распада СССР', color: '#c026d3', parts: [{ course: 'rus-11', chapters: [1] }] },
   { id: 'rf', title: 'Российская Федерация', range: '1992 — начало XXI в.', color: '#db2777', parts: [{ course: 'rus-11', chapters: [2] }] },
+  { id: 'w-ancient', title: 'Всеобщая история: Древний мир', range: 'от первобытности до V в.', color: '#d97706', world: true, parts: [{ course: 'world-5' }] },
+  { id: 'w-medieval', title: 'Всеобщая история: Средние века', range: 'V — XV вв.', color: '#7c3aed', world: true, parts: [{ course: 'world-6' }] },
+  { id: 'w-new-1', title: 'Всеобщая история: Новое время (XVI–XVII вв.)', range: 'конец XV — XVII в.', color: '#0d9488', world: true, parts: [{ course: 'world-7' }] },
+  { id: 'w-new-2', title: 'Всеобщая история: XVIII век', range: 'эпоха Просвещения и революций', color: '#0891b2', world: true, parts: [{ course: 'world-8' }] },
+  { id: 'w-19', title: 'Всеобщая история: XIX — начало XX в.', range: '1800–1914 гг.', color: '#2563eb', world: true, parts: [{ course: 'world-9' }] },
+  { id: 'w-1914', title: 'Всеобщая история: 1914–1945 гг.', range: 'мировые войны и межвоенный период', color: '#b91c1c', world: true, parts: [{ course: 'world-10' }] },
+  { id: 'w-1945', title: 'Всеобщая история: 1945 — начало XXI в.', range: 'холодная война и современный мир', color: '#db2777', world: true, parts: [{ course: 'world-11' }] },
 ]
 
 const inPeriod = (item, period) =>

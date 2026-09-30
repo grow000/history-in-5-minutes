@@ -9,15 +9,14 @@ import { loadProgress } from '../progress.js'
 import { stagger, staggerItem } from '../components/Reveal.jsx'
 
 const GROUPS = [
-  { id: 'all', label: 'Все классы' },
-  { id: 'basic', label: '6–9 классы' },
-  { id: 'senior', label: '10–11 классы' },
+  { id: 'russia', label: 'История России' },
+  { id: 'world', label: 'Всеобщая история' },
 ]
 
-const inGroup = (c, g) => g === 'all' || (g === 'basic' ? c.exams.includes('oge') : !c.exams.includes('oge'))
+const inGroup = (c, g) => c.group === g
 
 export default function Learn() {
-  const [group, setGroup] = useState('all')
+  const [group, setGroup] = useState('russia')
   const [q, setQ] = useState('')
   const [progress] = useState(loadProgress)
 
@@ -41,14 +40,14 @@ export default function Learn() {
         </div>
         <div className="container hero__inner">
           <span className="pill hero__pill">
-            <BookOpen size={15} /> По учебникам под ред. В. Р. Мединского
+            <BookOpen size={15} /> По учебникам В. Р. Мединского
           </span>
           <h1 className="hero__title">
             Курс <span className="gradient-text">истории</span>
           </h1>
           <p className="hero__lead">
-            Все темы школьного курса — от Древней Руси до наших дней. Подробные конспекты, карты, таблицы, термины и
-            тесты с разбором ошибок.
+            История России и всеобщая история — все темы школьного курса с 5 по 11 класс. Конспекты, карты, таблицы,
+            термины и тесты с разбором ошибок.
           </p>
           <div className="search">
             <Search className="search__icon" size={22} aria-hidden="true" />

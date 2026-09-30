@@ -10,14 +10,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
       output: {
-        // Данные курса и библиотеки — отдельными файлами: грузятся параллельно и кэшируются
+        // Данные курсов и библиотеки — отдельными файлами: грузятся параллельно и кэшируются
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('leaflet')) return 'leaflet'
             return 'vendor'
           }
-          const m = id.match(/src[\\/]data[\\/]topics[\\/]b\d+r?-(rus\d+)/)
-          if (m) return `course-${m[1]}`
+          const m = id.match(/src[\\/]data[\\/]topics[\\/](?:b\d+r?-(rus\d+)|w\d+r?-(world\d+))/)
+          if (m) return `course-${m[1] ?? m[2]}`
           if (/src[\\/]data[\\/]events[\\/]/.test(id)) return 'events'
         },
       },
