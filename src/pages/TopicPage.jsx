@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   ArrowLeft, ArrowRight, BookOpen, CalendarDays, FileText, GraduationCap, Lightbulb, Map as MapIcon,
   Star, Table, Target, Users,
@@ -123,7 +123,7 @@ function TopicContent({ topic }) {
       </div>
 
       <div className="container topic-body" ref={contentRef}>
-        <AnimatePresence mode="wait">
+        <>
           <TabPanel id={tab} layoutId="topic-tabs" key={tab}>
             {tab === 'text' && <TextTab topic={topic} />}
             {tab === 'map' && (
@@ -145,7 +145,7 @@ function TopicContent({ topic }) {
             {tab === 'terms' && <TermsTab topic={topic} />}
             {tab === 'people' && <PeopleTab topic={topic} />}
           </TabPanel>
-        </AnimatePresence>
+        </>
 
         <Reveal className="quiz-cta">
           <div className="quiz-cta__icon" aria-hidden="true">

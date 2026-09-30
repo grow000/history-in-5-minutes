@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { ArrowLeft, ArrowRight, BookOpen, Check, RotateCcw, Trophy, X } from 'lucide-react'
 
 const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е']
@@ -210,13 +210,12 @@ export default function QuizRunner({ questions: source, accent, badge, back, pre
           </div>
         </div>
 
-        <AnimatePresence mode="wait">
+        <>
           <motion.div
             className="question"
             key={step}
             initial={{ opacity: 0, x: 40 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -40, transition: { duration: 0.18, ease: 'easeIn' } }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
             {badge && <div className="question__badge">{badge}</div>}
@@ -265,7 +264,7 @@ export default function QuizRunner({ questions: source, accent, badge, back, pre
               </motion.div>
             )}
           </motion.div>
-        </AnimatePresence>
+        </>
         <p className="quiz-hint">Подсказка: можно отвечать клавишами 1–{current.options.length} и переходить дальше по Enter.</p>
       </div>
     </div>

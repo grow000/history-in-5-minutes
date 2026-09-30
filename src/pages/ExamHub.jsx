@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { ArrowRight, BookOpen, Dices, GraduationCap, ListChecks, Timer } from 'lucide-react'
 import Tabs, { TabPanel } from '../components/Tabs.jsx'
 import { stagger, staggerItem } from '../components/Reveal.jsx'
@@ -67,7 +67,7 @@ export default function ExamHub() {
       </section>
 
       <div className="container exam__body">
-        <AnimatePresence mode="wait">
+        <>
           <TabPanel id={exam} layoutId="exam-switch" key={exam}>
             <div className="exam-top">
               <motion.div className="exam-card exam-card--main" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
@@ -197,7 +197,7 @@ export default function ExamHub() {
               </div>
             </section>
           </TabPanel>
-        </AnimatePresence>
+        </>
       </div>
     </div>
   )
