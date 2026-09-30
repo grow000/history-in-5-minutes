@@ -1,223 +1,242 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import EventCard from '../components/EventCard.jsx'
-import { events, ERAS, ERA_LIST, CATEGORIES, filterEvents, plural } from '../data/index.js'
+import { Link, useNavigate } from 'react-router-dom'
+import { animate, motion, useInView, useReducedMotion } from 'framer-motion'
+import { ArrowRight, BookOpen, GraduationCap, Landmark, Map as MapIcon, Search, Sparkles, Target, X } from 'lucide-react'
+import Reveal, { stagger, staggerItem } from '../components/Reveal.jsx'
+import { COURSES, searchTopics, tasks, topics, topicsOfCourse } from '../data/course.js'
+import { events, filterEvents, plural } from '../data/index.js'
 import { loadProgress } from '../progress.js'
 
+function Counter({ to }) {
+  const ref = useRef(null)
+  const inView = useInView(ref, { once: true })
+  const reduce = useReducedMotion()
+  const [value, setValue] = useState(reduce ? to : 0)
+  useEffect(() => {
+    if (!inView || reduce) return
+    const c = animate(0, to, { duration: 1.4, ease: [0.22, 1, 0.36, 1], onUpdate: (v) => setValue(Math.round(v)) })
+    return () => c.stop()
+  }, [inView, to, reduce])
+  return <b ref={ref}>{value}</b>
+}
+
+const TITLE_WORDS = ['История', 'за', '5', 'минут']
+
 export default function Home() {
-  const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
-  const searchRef = useRef(null)
+  const [q, setQ] = useState('')
   const [progress] = useState(loadProgress)
+  const inputRef = useRef(null)
 
-  const q = params.get('q') ?? ''
-  const era = ERAS[params.get('era')] ? params.get('era') : 'all'
-  const cat = CATEGORIES[params.get('cat')] ? params.get('cat') : 'all'
-  const sort = params.get('sort') === 'desc' ? 'desc' : 'asc'
+  const foundTopics = useMemo(() => (q.trim() ? searchTopics(q).slice(0, 6) : []), [q])
+  const foundEvents = useMemo(() => (q.trim() ? filterEvents({ q }).slice(0, 4) : []), [q])
 
-  // Локальное значение поля, чтобы ввод не «прыгал» при обновлении URL
-  const [query, setQuery] = useState(q)
-  useEffect(() => setQuery(q), [q])
+  const daily = useMemo(() => topics[new Date().getDate() % Math.max(1, topics.length)], [])
+  const doneTopics = topics.filter((t) => progress['topic:' + t.id]).length
+  const mapsCount = topics.filter((t) => t.map).length
 
-  const update = (patch) => {
-    const next = new URLSearchParams(params)
-    Object.entries(patch).forEach(([key, value]) => {
-      if (!value || value === 'all' || (key === 'sort' && value === 'asc')) next.delete(key)
-      else next.set(key, value)
-    })
-    setParams(next, { replace: true })
-  }
-
-  const onQueryChange = (value) => {
-    setQuery(value)
-    update({ q: value })
-  }
-
-  // «/» — быстрый фокус на поиск
   useEffect(() => {
     const onKey = (e) => {
-      if (e.key === '/' && document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'SELECT') {
+      if (e.key === '/' && !['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
         e.preventDefault()
-        searchRef.current?.focus()
+        inputRef.current?.focus()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const results = useMemo(() => filterEvents({ q, era, cat, sort }), [q, era, cat, sort])
-
-  // Счётчики по эпохам учитывают текущий поиск и категорию
-  const eraCounts = useMemo(() => {
-    const base = filterEvents({ q, cat })
-    const counts = { all: base.length }
-    base.forEach((ev) => (counts[ev.era] = (counts[ev.era] || 0) + 1))
-    return counts
-  }, [q, cat])
-
-  const doneCount = events.filter((ev) => progress[ev.id]).length
-  const hasFilters = q || era !== 'all' || cat !== 'all' || sort !== 'asc'
-
-  const randomEvent = () => {
-    const pool = results.length ? results : events
-    const ev = pool[Math.floor(Math.random() * pool.length)]
-    navigate(`/event/${ev.id}`)
-  }
+  const sections = [
+    {
+      to: '/learn',
+      icon: BookOpen,
+      title: 'Курс истории',
+      text: 'Все темы учебников истории России по классам: подробные конспекты, карты, таблицы, термины и тесты.',
+      stat: `${topics.length} ${plural(topics.length, ['тема', 'темы', 'тем'])}`,
+      color: '#4f46e5',
+    },
+    {
+      to: '/exam',
+      icon: GraduationCap,
+      title: 'ЕГЭ и ОГЭ',
+      text: 'Задания в формате ФИПИ: хронология, соответствие, термины, карты. Варианты и разбор ошибок.',
+      stat: `${tasks.length} ${plural(tasks.length, ['задание', 'задания', 'заданий'])}`,
+      color: '#ea580c',
+    },
+    {
+      to: '/events',
+      icon: Landmark,
+      title: 'События мира',
+      text: 'Ключевые события мировой истории от Древнего мира до XXI века — за 5 минут каждое.',
+      stat: `${events.length} ${plural(events.length, ['событие', 'события', 'событий'])}`,
+      color: '#0d9488',
+    },
+  ]
 
   return (
     <>
-      <section className="hero">
+      <section className="hero hero--home">
         <div className="hero__bg" aria-hidden="true">
           <span className="blob blob--1" />
           <span className="blob blob--2" />
           <span className="blob blob--3" />
+          <div className="hero__grid" />
         </div>
         <div className="container hero__inner">
-          <span className="pill hero__pill">📚 Учись быстро · проверяй себя</span>
-          <h1 className="hero__title">
-            История <span className="gradient-text">за 5 минут</span>
+          <span className="pill hero__pill">
+            <Sparkles size={15} /> Учись быстро · готовься к экзаменам
+          </span>
+          <h1 className="hero__title hero__title--words">
+            {TITLE_WORDS.map((w, i) => (
+              <motion.span
+                key={i}
+                className={i >= 1 ? 'gradient-text' : ''}
+                initial={{ opacity: 0, y: 30, rotateX: -60 }}
+                animate={{ opacity: 1, y: 0, rotateX: 0 }}
+                transition={{ delay: 0.1 + i * 0.09, duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              >
+                {w}
+              </motion.span>
+            ))}
           </h1>
           <p className="hero__lead">
-            Выбери событие, прочитай короткий и понятный конспект: причины, ход, участники и значение. А потом проверь
-            себя в викторине из 5 вопросов.
+            История России по учебникам Мединского, ключевые события мировой истории и подготовка к ЕГЭ и ОГЭ — коротко,
+            наглядно и с проверкой знаний.
           </p>
 
-          <div className="search">
-            <svg className="search__icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-              <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2.2" />
-              <path d="M20 20l-4-4" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
-            </svg>
+          <div className="search search--home">
+            <Search className="search__icon" size={22} aria-hidden="true" />
             <input
-              ref={searchRef}
+              ref={inputRef}
               type="search"
               className="search__input"
-              placeholder="Поиск: событие, год, личность…"
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              aria-label="Поиск по событиям"
+              placeholder="Поиск: Пётр I, Смута, 1812, опричнина…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              aria-label="Поиск по темам и событиям"
               autoComplete="off"
             />
-            {query ? (
-              <button type="button" className="search__clear" onClick={() => onQueryChange('')} aria-label="Очистить поиск">
-                ✕
+            {q ? (
+              <button type="button" className="search__clear" onClick={() => setQ('')} aria-label="Очистить поиск">
+                <X size={16} />
               </button>
             ) : (
-              <kbd className="search__kbd" aria-hidden="true">/</kbd>
+              <kbd className="search__kbd" aria-hidden="true">
+                /
+              </kbd>
+            )}
+            {q.trim() && (
+              <motion.div className="search-drop" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
+                {foundTopics.length + foundEvents.length === 0 && <div className="search-drop__empty">Ничего не найдено</div>}
+                {foundTopics.length > 0 && <div className="search-drop__group">Темы курса</div>}
+                {foundTopics.map((t) => (
+                  <button key={t.id} type="button" className="search-drop__item" onClick={() => navigate(`/topic/${t.id}`)}>
+                    <BookOpen size={16} />
+                    <span>{t.title}</span>
+                    <small>{t.period}</small>
+                  </button>
+                ))}
+                {foundEvents.length > 0 && <div className="search-drop__group">События</div>}
+                {foundEvents.map((e) => (
+                  <button key={e.id} type="button" className="search-drop__item" onClick={() => navigate(`/event/${e.id}`)}>
+                    <Landmark size={16} />
+                    <span>{e.title}</span>
+                    <small>{e.date}</small>
+                  </button>
+                ))}
+              </motion.div>
             )}
           </div>
 
           <div className="hero__stats">
             <div className="stat">
-              <b>{events.length}</b>
-              <span>{plural(events.length, ['событие', 'события', 'событий'])}</span>
+              <Counter to={topics.length} />
+              <span>тем курса</span>
             </div>
             <div className="stat">
-              <b>{ERA_LIST.length}</b>
-              <span>эпох</span>
+              <Counter to={tasks.length} />
+              <span>заданий ЕГЭ/ОГЭ</span>
             </div>
             <div className="stat">
-              <b>{events.length * 5}</b>
-              <span>вопросов</span>
+              <Counter to={mapsCount} />
+              <span>карт</span>
             </div>
             <div className="stat">
-              <b>{doneCount}</b>
-              <span>пройдено тобой</span>
+              <Counter to={doneTopics} />
+              <span>тестов пройдено</span>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container catalog" aria-labelledby="catalog-title">
-        <h2 id="catalog-title" className="visually-hidden">
-          Каталог событий
-        </h2>
+      <div className="container home">
+        <motion.div className="feature-grid" variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}>
+          {sections.map((s) => {
+            const Icon = s.icon
+            return (
+              <motion.div key={s.to} variants={staggerItem}>
+                <Link to={s.to} className="feature-card" style={{ '--era': s.color }}>
+                  <span className="feature-card__icon">
+                    <Icon size={28} />
+                  </span>
+                  <h2>{s.title}</h2>
+                  <p>{s.text}</p>
+                  <span className="feature-card__foot">
+                    <span className="feature-card__stat">{s.stat}</span>
+                    <span className="feature-card__go">
+                      Перейти <ArrowRight size={17} />
+                    </span>
+                  </span>
+                </Link>
+              </motion.div>
+            )
+          })}
+        </motion.div>
 
-        <div className="eras" role="group" aria-label="Фильтр по эпохам">
-          <button
-            type="button"
-            className={'era-chip' + (era === 'all' ? ' is-active' : '')}
-            onClick={() => update({ era: 'all' })}
-            aria-pressed={era === 'all'}
-          >
-            <span className="era-chip__emoji" aria-hidden="true">🌍</span>
-            <span className="era-chip__text">
-              <b>Все эпохи</b>
-              <small>{eraCounts.all ?? 0} {plural(eraCounts.all ?? 0, ['событие', 'события', 'событий'])}</small>
-            </span>
-          </button>
-          {ERA_LIST.map((e) => (
-            <button
-              key={e.id}
-              type="button"
-              className={'era-chip' + (era === e.id ? ' is-active' : '')}
-              style={{ '--era': e.color }}
-              onClick={() => update({ era: era === e.id ? 'all' : e.id })}
-              aria-pressed={era === e.id}
-            >
-              <span className="era-chip__emoji" aria-hidden="true">{e.emoji}</span>
-              <span className="era-chip__text">
-                <b>{e.title}</b>
-                <small>
-                  {e.range} · {eraCounts[e.id] ?? 0}
-                </small>
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="toolbar">
-          <label className="select">
-            <span className="visually-hidden">Тема</span>
-            <select value={cat} onChange={(e) => update({ cat: e.target.value })}>
-              <option value="all">Все темы</option>
-              {Object.entries(CATEGORIES).map(([id, title]) => (
-                <option key={id} value={id}>
-                  {title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="select">
-            <span className="visually-hidden">Сортировка</span>
-            <select value={sort} onChange={(e) => update({ sort: e.target.value })} disabled={Boolean(q)}>
-              <option value="asc">Сначала древние</option>
-              <option value="desc">Сначала новые</option>
-            </select>
-          </label>
-          <div className="toolbar__spacer" />
-          {hasFilters && (
-            <button type="button" className="btn btn--ghost" onClick={() => { setQuery(''); setParams({}, { replace: true }) }}>
-              Сбросить
-            </button>
-          )}
-          <button type="button" className="btn btn--soft" onClick={randomEvent}>
-            🎲 Случайное
-          </button>
-        </div>
-
-        <p className="results-count" aria-live="polite">
-          {results.length
-            ? `Найдено ${results.length} ${plural(results.length, ['событие', 'события', 'событий'])}`
-            : 'Ничего не найдено'}
-        </p>
-
-        {results.length ? (
-          <div className="grid">
-            {results.map((ev, i) => (
-              <EventCard key={ev.id} event={ev} index={i} result={progress[ev.id]} />
+        <Reveal as="section" className="home-section">
+          <h2 className="section-heading">
+            <MapIcon size={22} /> Лента истории России
+          </h2>
+          <div className="ribbon">
+            {COURSES.filter((c) => c.group === 'russia').map((c, i) => (
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07, duration: 0.5 }}
+              >
+                <Link to={`/learn/${c.id}`} className="ribbon__item" style={{ '--era': c.color }}>
+                  <span className="ribbon__dot" />
+                  <span className="ribbon__period">{c.period}</span>
+                  <span className="ribbon__title">{c.title}</span>
+                  <span className="ribbon__count">
+                    {c.grade} · {topicsOfCourse(c.id).length} тем
+                  </span>
+                </Link>
+              </motion.div>
             ))}
           </div>
-        ) : (
-          <div className="empty">
-            <div className="empty__emoji" aria-hidden="true">🔎</div>
-            <h3>По запросу ничего не нашлось</h3>
-            <p>Попробуй другое слово, год или имя — или сбрось фильтры.</p>
-            <button type="button" className="btn btn--primary" onClick={() => { setQuery(''); setParams({}, { replace: true }) }}>
-              Показать все события
-            </button>
-          </div>
+        </Reveal>
+
+        {daily && (
+          <Reveal as="section" className="daily">
+            <div className="daily__label">
+              <Target size={18} /> Тема дня
+            </div>
+            <h2 className="daily__title">{daily.title}</h2>
+            <p className="daily__text">{daily.summary}</p>
+            <div className="daily__actions">
+              <Link to={`/topic/${daily.id}`} className="btn btn--light">
+                Читать конспект
+              </Link>
+              <Link to={`/topic/${daily.id}/quiz`} className="btn btn--outline-light">
+                Пройти тест
+              </Link>
+            </div>
+          </Reveal>
         )}
-      </section>
+      </div>
     </>
   )
 }

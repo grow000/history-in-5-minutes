@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { events, eventsById, ERAS, CATEGORIES } from '../data/index.js'
 import { loadProgress } from '../progress.js'
 import NotFound from './NotFound.jsx'
@@ -72,6 +72,21 @@ function EventContent({ event }) {
   const progress = useReadingProgress()
   const active = useActiveSection()
   const tocTrack = useRef(null)
+  const [params] = useSearchParams()
+
+  // Переход из викторины к конкретному разделу: ?s=causes
+  useEffect(() => {
+    const target = params.get('s')
+    if (!target) return
+    const t = setTimeout(() => {
+      const el = document.getElementById(target)
+      if (!el) return
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      el.classList.add('section--flash')
+      setTimeout(() => el.classList.remove('section--flash'), 2600)
+    }, 350)
+    return () => clearTimeout(t)
+  }, [params])
   const [result] = useState(() => loadProgress()[event.id])
 
   const index = events.findIndex((e) => e.id === event.id)
@@ -106,9 +121,9 @@ function EventContent({ event }) {
         <div className="event-hero__glow" aria-hidden="true" />
         <div className="container event-hero__inner">
           <nav className="breadcrumbs" aria-label="Навигационная цепочка">
-            <Link to="/">События</Link>
+            <Link to="/events">События</Link>
             <span aria-hidden="true">/</span>
-            <Link to={`/?era=${era.id}`}>{era.title}</Link>
+            <Link to={`/events?era=${era.id}`}>{era.title}</Link>
           </nav>
           <div className="event-hero__emoji" aria-hidden="true">
             {event.emoji}

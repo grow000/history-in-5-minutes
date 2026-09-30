@@ -64,7 +64,7 @@ export default function About() {
             {ERA_LIST.map((era) => {
               const count = events.filter((e) => e.era === era.id).length
               return (
-                <Link key={era.id} to={`/?era=${era.id}`} className="era-row" style={{ '--era': era.color }}>
+                <Link key={era.id} to={`/events?era=${era.id}`} className="era-row" style={{ '--era': era.color }}>
                   <span className="era-row__emoji" aria-hidden="true">{era.emoji}</span>
                   <span className="era-row__title">{era.title}</span>
                   <span className="era-row__range">{era.range}</span>
@@ -125,7 +125,7 @@ export default function About() {
         </section>
 
         <div className="about-cta">
-          <Link to="/" className="btn btn--primary btn--lg">
+          <Link to="/events" className="btn btn--primary btn--lg">
             Перейти к событиям
           </Link>
         </div>
