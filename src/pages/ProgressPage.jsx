@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Download, Upload } from 'lucide-react'
-import { COURSES, EXAM_LINES, EXAMS, tasks, topics } from '../data/course.js'
+import { EXAM_LINES, EXAMS, PERIODS, tasks, topics, topicsOfPeriod } from '../data/course.js'
 import { plural } from '../data/index.js'
 import { exportProgress, importProgress, levelOf, loadHistory, loadProgress, loadStory, resetProgress, totalXp } from '../progress.js'
 
@@ -154,16 +154,16 @@ export default function ProgressPage() {
           </section>
 
           <section className="simple-section">
-            <h2>Курс по классам</h2>
+            <h2>По разделам</h2>
             <ul className="plain-list">
-              {COURSES.map((c) => {
-                const list = topics.filter((t) => t.course === c.id)
-                const done = list.filter((t) => progress['topic:' + t.id]).length
+              {PERIODS.map((c) => {
+                const list = topicsOfPeriod(c.id)
+                const done = list.filter((t) => progress['topic:' + t.id] || story[t.id]?.done).length
                 return (
                   <li key={c.id}>
-                    <Link to={`/learn/${c.id}`} className="plain-row">
+                    <Link to={`/learn?exam=all&p=${c.id}`} className="plain-row">
                       <span>
-                        {c.grade} · {c.title}
+                        {c.title} · {c.range}
                       </span>
                       <span className="plain-row__meta">
                         {done} / {list.length}

@@ -50,13 +50,7 @@ export default function Sources() {
                       {s.details && <div className="source-item__details">{s.details}</div>}
                       {courses.length > 0 && (
                         <div className="source-item__used">
-                          Используется в курсе:{' '}
-                          {courses.map((c, i) => (
-                            <span key={c.id}>
-                              {i > 0 && ', '}
-                              <Link to={`/learn/${c.id}`}>{c.title}</Link>
-                            </span>
-                          ))}
+                          Используется в темах: {courses.map((c) => c.period).join('; ')}
                         </div>
                       )}
                     </div>

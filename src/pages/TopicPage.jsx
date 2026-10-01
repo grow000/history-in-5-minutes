@@ -6,7 +6,7 @@ import {
   RotateCcw, Sparkles, Star, Swords, Table, Target, Trophy, Users, X, Zap,
 } from 'lucide-react'
 import DataTable from '../components/DataTable.jsx'
-import { coursesById, neighbours, SOURCES, tasksFor, topicsById } from '../data/course.js'
+import { coursesById, neighbours, periodOf, tasksFor, topicsById } from '../data/course.js'
 import { plural } from '../data/index.js'
 import { loadProgress, loadStory, saveStory } from '../progress.js'
 import NotFound from './NotFound.jsx'
@@ -56,7 +56,7 @@ const SECTION_ALIASES = { map: 'places' }
 
 function TopicStory({ topic }) {
   const course = coursesById[topic.course]
-  const chapter = course.chapters.find((c) => c.n === topic.chapter)
+  const period = periodOf(topic)
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const { prev, next } = neighbours(topic.id)
@@ -171,15 +171,15 @@ function TopicStory({ topic }) {
     setParams(p, { replace: true })
   }
 
-  const ctx = { topic, course, earn, got, go, steps, examCount, best, next, xp, navigate }
+  const ctx = { topic, course, period, earn, got, go, steps, examCount, best, next, xp, navigate }
   const current = steps[step]
   const percent = Math.round(((step + 1) / steps.length) * 100)
 
   return (
-    <article className="story" style={{ '--era': course.color }}>
+    <article className="story" style={{ '--era': period?.color ?? course.color }}>
       <div className="story-bar" ref={topRef}>
         <div className="container story-bar__inner">
-          <Link to={`/learn/${course.id}`} className="story-bar__back" aria-label={`К курсу «${course.short}»`}>
+          <Link to={period ? `/learn?p=${period.id}` : '/learn'} className="story-bar__back" aria-label="Ко всем темам">
             <ArrowLeft size={18} />
           </Link>
           <div className="story-bar__main">
@@ -264,10 +264,8 @@ function TopicStory({ topic }) {
         )}
 
         <p className="source-note">
-          <BookOpen size={15} /> По учебнику: {SOURCES[course.source]?.short}
-          {topic.paragraphs ? `, ${topic.paragraphs}` : ''}
-          {chapter ? ` (гл. ${chapter.n} «${chapter.title}»)` : ''}. Текст — авторский пересказ для повторения.{' '}
-          <Link to="/sources">Источники</Link>
+          <BookOpen size={15} /> По материалам учебников {course.group === 'world' ? 'В. Р. Мединского и А. О. Чубарьяна' : 'В. Р. Мединского и А. В. Торкунова'}. Текст — авторский пересказ.{' '}
+          <Link to="/sources">Все источники</Link>
         </p>
 
         <nav className="pager" aria-label="Соседние темы">
@@ -331,12 +329,12 @@ function StepView({ step, ctx }) {
 }
 
 function IntroStep({ ctx }) {
-  const { topic, course, steps } = ctx
+  const { topic, period, steps } = ctx
   const checks = steps.filter((s) => s.check).length
   return (
     <div className="story-card story-card--hero">
       <div className="story-hero__meta">
-        <span className="story-chip">{course.short}</span>
+        {period && <span className="story-chip">{period.title.replace('Всеобщая история: ', 'Всеобщая · ')}</span>}
         <span className="story-chip">{topic.period}</span>
         {topic.exam?.ege && <span className="story-chip story-chip--exam">ЕГЭ</span>}
         {topic.exam?.oge && <span className="story-chip story-chip--exam">ОГЭ</span>}

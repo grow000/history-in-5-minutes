@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { COURSES, tasks, topics, topicsOfCourse } from '../data/course.js'
+import { PERIODS, tasks, topics, topicsOfPeriod } from '../data/course.js'
 import { plural } from '../data/index.js'
 
 const STEPS = [
-  { icon: '🧭', title: 'Выбери тему', text: 'История России или всеобщая история, 5–11 класс — через поиск или по пути курса.' },
+  { icon: '🔎', title: 'Найди событие', text: 'Через поиск — или открой все темы ЕГЭ и ОГЭ, собранные по разделам кодификатора.' },
   { icon: '📖', title: 'Пройди историю', text: 'Тема разбита на короткие шаги: рассказ, вопросы на понимание, карточки, игра с датами.' },
   { icon: '🎯', title: 'Проверь себя', text: 'Тест с объяснениями и задания всех номеров ЕГЭ/ОГЭ. Прогресс сохраняется в браузере.' },
 ]
@@ -26,8 +26,8 @@ export default function About() {
             Учить историю — <span className="gradient-text">быстро и интересно</span>
           </h1>
           <p className="about-hero__lead">
-            «История за 5 минут» — учебный сайт, где темы истории России и всеобщей истории по учебникам Мединского
-            объясняются коротко, понятно и в игровой форме. Он помогает подготовиться к уроку, контрольной, ОГЭ и ЕГЭ.
+            «История за 5 минут» — сайт, где любое событие истории России и мира можно найти и разобрать за несколько минут,
+            а все темы ЕГЭ и ОГЭ собраны по разделам экзамена — с заданиями по всем номерам.
           </p>
         </div>
       </section>
@@ -48,13 +48,13 @@ export default function About() {
         </section>
 
         <section className="about-section">
-          <h2>Курсы</h2>
+          <h2>Разделы</h2>
           <div className="era-list">
-            {COURSES.map((c) => {
-              const count = topicsOfCourse(c.id).length
+            {PERIODS.map((c) => {
+              const count = topicsOfPeriod(c.id).length
               return (
-                <Link key={c.id} to={`/learn/${c.id}`} className="era-row" style={{ '--era': c.color }}>
-                  <span className="era-row__title">{c.short}</span>
+                <Link key={c.id} to={`/learn?exam=all&p=${c.id}`} className="era-row" style={{ '--era': c.color }}>
+                  <span className="era-row__title">{c.title}</span>
                   <span className="era-row__range">{c.period}</span>
                   <span className="era-row__count">
                     {count} {plural(count, ['тема', 'темы', 'тем'])}
@@ -81,7 +81,7 @@ export default function About() {
 
         <div className="about-cta">
           <Link to="/learn" className="btn btn--primary btn--lg">
-            Начать учиться
+            Найти тему
           </Link>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { animate, motion, useInView, useReducedMotion } from 'framer-motion'
 import { ArrowRight, BookOpen, ChartNoAxesColumn, Compass, GraduationCap, Search, Sparkles, Target, X, Zap } from 'lucide-react'
 import Reveal, { stagger, staggerItem } from '../components/Reveal.jsx'
-import { COURSES, searchTopics, tasks, topics, topicsById, topicsOfCourse } from '../data/course.js'
+import { periodsFor, searchTopics, tasks, topics, topicsById, topicsFor } from '../data/course.js'
 import { plural } from '../data/index.js'
 import { levelOf, loadHistory, loadStory, totalXp } from '../progress.js'
 
@@ -62,8 +62,8 @@ export default function Home() {
     {
       to: '/learn',
       icon: BookOpen,
-      title: 'Курс истории',
-      text: 'Темы как интерактивные истории: шаги, вопросы по ходу, карточки героев и терминов, игра с датами.',
+      title: 'Темы и события',
+      text: 'Найди любое событие или пройди все темы ЕГЭ и ОГЭ: короткие истории с вопросами, карточками и игрой с датами.',
       stat: `${topics.length} ${plural(topics.length, ['тема', 'темы', 'тем'])}`,
       color: '#4f46e5',
     },
@@ -112,8 +112,8 @@ export default function Home() {
             ))}
           </h1>
           <p className="hero__lead">
-            История России и всеобщая история по учебникам Мединского — не сплошным текстом, а интерактивными историями.
-            И подготовка к ЕГЭ и ОГЭ по всем номерам заданий.
+            Ищи интересные события или проходи по порядку все темы ЕГЭ и ОГЭ — коротко, интерактивно и с заданиями по всем
+            номерам экзамена.
           </p>
 
           <div className="search search--home">
@@ -209,24 +209,22 @@ export default function Home() {
 
         <Reveal as="section" className="home-section">
           <h2 className="section-heading">
-            <Compass size={22} /> Путь по истории России
+            <Compass size={22} /> Темы ЕГЭ по разделам
           </h2>
           <div className="ribbon">
-            {COURSES.filter((c) => c.group === 'russia').map((c, i) => (
+            {periodsFor('ege').map((p, i) => (
               <motion.div
-                key={c.id}
+                key={p.id}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: i * 0.07, duration: 0.5 }}
+                transition={{ delay: Math.min(i, 8) * 0.05, duration: 0.5 }}
               >
-                <Link to={`/learn/${c.id}`} className="ribbon__item" style={{ '--era': c.color }}>
+                <Link to={`/learn?p=${p.id}`} className="ribbon__item" style={{ '--era': p.color }}>
                   <span className="ribbon__dot" />
-                  <span className="ribbon__period">{c.period}</span>
-                  <span className="ribbon__title">{c.title}</span>
-                  <span className="ribbon__count">
-                    {c.grade} · {topicsOfCourse(c.id).length} тем
-                  </span>
+                  <span className="ribbon__period">{p.range}</span>
+                  <span className="ribbon__title">{p.title}</span>
+                  <span className="ribbon__count">{topicsFor('ege', p.id).length} тем</span>
                 </Link>
               </motion.div>
             ))}

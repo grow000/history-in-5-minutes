@@ -248,23 +248,23 @@ export const EXAM_LINES = {
 
 // ---------- Исторические периоды (как разделы кодификатора ФИПИ, без деления на классы) ----------
 export const PERIODS = [
-  { id: 'rus-ancient', title: 'Русь и русские земли', range: 'IX — начало XVI в.', color: '#b45309', parts: [{ course: 'rus-6' }] },
-  { id: 'rus-16-17', title: 'Россия в XVI–XVII вв.', range: 'от великого княжества к царству', color: '#be123c', parts: [{ course: 'rus-7' }] },
-  { id: 'rus-18', title: 'Россия в конце XVII — XVIII в.', range: 'от царства к империи', color: '#7c3aed', parts: [{ course: 'rus-8', chapters: [1, 2, 3, 4] }] },
-  { id: 'rus-19a', title: 'Россия в первой половине XIX в.', range: '1801–1855 гг.', color: '#0891b2', parts: [{ course: 'rus-8', chapters: [5] }, { course: 'rus-9', chapters: [1, 2] }] },
-  { id: 'rus-19b', title: 'Россия во второй половине XIX — начале XX в.', range: '1855–1914 гг.', color: '#0d9488', parts: [{ course: 'rus-9', chapters: [3, 4, 5, 6, 7, 8] }] },
-  { id: 'rus-1914', title: 'Россия в 1914–1922 гг.', range: 'Первая мировая война, революция, Гражданская война', color: '#2563eb', parts: [{ course: 'rus-10', chapters: [1] }] },
-  { id: 'ussr-20-30', title: 'СССР в 1920–1930-е гг.', range: 'нэп, индустриализация, коллективизация', color: '#4f46e5', parts: [{ course: 'rus-10', chapters: [2] }] },
-  { id: 'ww2', title: 'Великая Отечественная война', range: '1941–1945 гг.', color: '#b91c1c', parts: [{ course: 'rus-10', chapters: [3] }] },
-  { id: 'ussr-45-91', title: 'СССР в 1945–1991 гг.', range: 'от восстановления до распада СССР', color: '#c026d3', parts: [{ course: 'rus-11', chapters: [1] }] },
-  { id: 'rf', title: 'Российская Федерация', range: '1992 — начало XXI в.', color: '#db2777', parts: [{ course: 'rus-11', chapters: [2] }] },
-  { id: 'w-ancient', title: 'Всеобщая история: Древний мир', range: 'от первобытности до V в.', color: '#d97706', world: true, parts: [{ course: 'world-5' }] },
-  { id: 'w-medieval', title: 'Всеобщая история: Средние века', range: 'V — XV вв.', color: '#7c3aed', world: true, parts: [{ course: 'world-6' }] },
-  { id: 'w-new-1', title: 'Всеобщая история: Новое время (XVI–XVII вв.)', range: 'конец XV — XVII в.', color: '#0d9488', world: true, parts: [{ course: 'world-7' }] },
-  { id: 'w-new-2', title: 'Всеобщая история: XVIII век', range: 'эпоха Просвещения и революций', color: '#0891b2', world: true, parts: [{ course: 'world-8' }] },
-  { id: 'w-19', title: 'Всеобщая история: XIX — начало XX в.', range: '1800–1914 гг.', color: '#2563eb', world: true, parts: [{ course: 'world-9' }] },
-  { id: 'w-1914', title: 'Всеобщая история: 1914–1945 гг.', range: 'мировые войны и межвоенный период', color: '#b91c1c', world: true, parts: [{ course: 'world-10' }] },
-  { id: 'w-1945', title: 'Всеобщая история: 1945 — начало XXI в.', range: 'холодная война и современный мир', color: '#db2777', world: true, parts: [{ course: 'world-11' }] },
+  { id: 'rus-ancient', code: '1', section: 'От Руси к Российскому государству', title: 'Русь и русские земли', range: 'IX — начало XVI в.', color: '#b45309', parts: [{ course: 'rus-6' }] },
+  { id: 'rus-16-17', code: '2', section: 'Россия в XVI–XVII вв.: от великого княжества к царству', title: 'Россия в XVI–XVII вв.', range: 'от великого княжества к царству', color: '#be123c', parts: [{ course: 'rus-7' }] },
+  { id: 'rus-18', code: '3', section: 'Россия в конце XVII — XVIII в.: от царства к империи', title: 'Россия в конце XVII — XVIII в.', range: 'от царства к империи', color: '#7c3aed', parts: [{ course: 'rus-8', chapters: [1, 2, 3, 4] }] },
+  { id: 'rus-19a', code: '4', section: 'Российская империя в XIX — начале XX в.', title: 'Россия в первой половине XIX в.', range: '1801–1855 гг.', color: '#0891b2', parts: [{ course: 'rus-8', chapters: [5] }, { course: 'rus-9', chapters: [1, 2] }] },
+  { id: 'rus-19b', code: '4', section: 'Российская империя в XIX — начале XX в.', title: 'Россия во второй половине XIX — начале XX в.', range: '1855–1914 гг.', color: '#0d9488', parts: [{ course: 'rus-9', chapters: [3, 4, 5, 6, 7, 8] }] },
+  { id: 'rus-1914', code: '7', section: 'История России. 1914–1945 гг.', title: 'Россия в 1914–1922 гг.', range: 'Первая мировая война, революция, Гражданская война', color: '#2563eb', parts: [{ course: 'rus-10', chapters: [1] }] },
+  { id: 'ussr-20-30', code: '7', section: 'История России. 1914–1945 гг.', title: 'СССР в 1920–1930-е гг.', range: 'нэп, индустриализация, коллективизация', color: '#4f46e5', parts: [{ course: 'rus-10', chapters: [2] }] },
+  { id: 'ww2', code: '8', section: 'Великая Отечественная война 1941–1945 гг.', title: 'Великая Отечественная война', range: '1941–1945 гг.', color: '#b91c1c', parts: [{ course: 'rus-10', chapters: [3] }] },
+  { id: 'ussr-45-91', code: '9', section: 'СССР в 1945–1991 гг.', title: 'СССР в 1945–1991 гг.', range: 'от восстановления до распада СССР', color: '#c026d3', parts: [{ course: 'rus-11', chapters: [1] }] },
+  { id: 'rf', code: '10', section: 'Российская Федерация в 1992–2022 гг.', title: 'Российская Федерация', range: '1992 — начало XXI в.', color: '#db2777', parts: [{ course: 'rus-11', chapters: [2] }] },
+  { id: 'w-ancient', code: '5', section: 'Всеобщая история', title: 'Всеобщая история: Древний мир', range: 'от первобытности до V в.', color: '#d97706', world: true, parts: [{ course: 'world-5' }] },
+  { id: 'w-medieval', code: '5', section: 'Всеобщая история', title: 'Всеобщая история: Средние века', range: 'V — XV вв.', color: '#7c3aed', world: true, parts: [{ course: 'world-6' }] },
+  { id: 'w-new-1', code: '5', section: 'Всеобщая история', title: 'Всеобщая история: Новое время (XVI–XVII вв.)', range: 'конец XV — XVII в.', color: '#0d9488', world: true, parts: [{ course: 'world-7' }] },
+  { id: 'w-new-2', code: '5', section: 'Всеобщая история', title: 'Всеобщая история: XVIII век', range: 'эпоха Просвещения и революций', color: '#0891b2', world: true, parts: [{ course: 'world-8' }] },
+  { id: 'w-19', code: '5', section: 'Всеобщая история', title: 'Всеобщая история: XIX — начало XX в.', range: '1800–1914 гг.', color: '#2563eb', world: true, parts: [{ course: 'world-9' }] },
+  { id: 'w-1914', code: '11', section: 'Всеобщая история. 1914–1945 гг.', title: 'Всеобщая история: 1914–1945 гг.', range: 'мировые войны и межвоенный период', color: '#b91c1c', world: true, parts: [{ course: 'world-10' }] },
+  { id: 'w-1945', code: '12', section: 'Всеобщая история. 1945–2022 гг.', title: 'Всеобщая история: 1945 — начало XXI в.', range: 'холодная война и современный мир', color: '#db2777', world: true, parts: [{ course: 'world-11' }] },
 ]
 
 const inPeriod = (item, period) =>
@@ -272,6 +272,16 @@ const inPeriod = (item, period) =>
 
 export function periodOf(item) {
   return PERIODS.find((p) => inPeriod(item, p)) ?? null
+}
+
+// Разделы для экзамена: ОГЭ — история России до 1914 г. и всеобщая история до начала XX в., ЕГЭ — весь курс
+export function periodsFor(exam) {
+  return PERIODS.filter((p) => topicsOfPeriod(p.id).some((t) => !exam || t.exam?.[exam]))
+}
+
+export function topicsFor(exam, periodId) {
+  const list = periodId ? topicsOfPeriod(periodId) : topics
+  return exam ? list.filter((t) => t.exam?.[exam]) : list
 }
 
 export function topicsOfPeriod(periodId) {

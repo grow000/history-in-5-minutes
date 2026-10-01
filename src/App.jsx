@@ -5,7 +5,6 @@ import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
 import Learn from './pages/Learn.jsx'
-import CoursePage from './pages/CoursePage.jsx'
 import TopicPage from './pages/TopicPage.jsx'
 import TopicQuizPage from './pages/TopicQuizPage.jsx'
 import ExamHub from './pages/ExamHub.jsx'
@@ -31,7 +30,6 @@ function withId(Component) {
   }
 }
 
-const CourseRoute = withId(CoursePage)
 const TopicRoute = withId(TopicPage)
 const TopicQuizRoute = withId(TopicQuizPage)
 
@@ -48,7 +46,7 @@ function Layout() {
         <Routes location={location}>
           <Route path="/" element={<Home />} />
           <Route path="/learn" element={<Learn />} />
-          <Route path="/learn/:id" element={<CourseRoute />} />
+          <Route path="/learn/:id" element={<Navigate to="/learn" replace />} />
           <Route path="/topic/:id" element={<TopicRoute />} />
           <Route path="/topic/:id/quiz" element={<TopicQuizRoute />} />
           <Route path="/exam" element={<ExamHub />} />

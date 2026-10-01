@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, BookOpen, GraduationCap } from 'lucide-react'
 import QuizRunner from '../components/QuizRunner.jsx'
-import { coursesById, neighbours, tasksFor, topicsById } from '../data/course.js'
+import { coursesById, neighbours, periodOf, tasksFor, topicsById } from '../data/course.js'
 import { loadProgress, saveResult } from '../progress.js'
 import NotFound from './NotFound.jsx'
 
@@ -47,7 +47,7 @@ function TopicQuiz({ topic }) {
     <QuizRunner
       questions={questions}
       accent={course.color}
-      badge={`${course.short} · Тест по теме`}
+      badge={`${periodOf(topic)?.title ?? course.short} · Тест по теме`}
       back={{ to: `/topic/${topic.id}`, label: topic.title }}
       prevBest={prevBest}
       onFinish={(score, total) => saveResult(key, score, total, { kind: 'topic', title: topic.title, to: `/topic/${topic.id}`, course: topic.course })}
