@@ -46,8 +46,8 @@ export default function Learn() {
             Курс <span className="gradient-text">истории</span>
           </h1>
           <p className="hero__lead">
-            История России и всеобщая история — все темы школьного курса с 5 по 11 класс. Конспекты, карты, таблицы,
-            термины и тесты с разбором ошибок.
+            История России и всеобщая история — все темы школьного курса с 5 по 11 класс. Каждая тема — короткая
+            интерактивная история: шаги, вопросы по ходу, карточки героев и терминов, игра с датами и тест.
           </p>
           <div className="search">
             <Search className="search__icon" size={22} aria-hidden="true" />
@@ -137,7 +137,6 @@ export function TopicRow({ topic, done, showCourse, index }) {
           </div>
         </div>
         <div className="topic-row__badges">
-          {topic.map && <span className="mini-badge">Карта</span>}
           {topic.table && <span className="mini-badge">Таблица</span>}
           {done && (
             <span className={'mini-badge mini-badge--done' + (done.best === done.total ? ' is-perfect' : '')}>

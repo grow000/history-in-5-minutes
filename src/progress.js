@@ -3,6 +3,8 @@
 const KEY = 'h5m-progress-v1'
 const HISTORY_KEY = 'h5m-history-v1'
 const HISTORY_LIMIT = 300
+// Прохождение тем в режиме «история»: { [topicId]: { step, steps, done, xp, at } }
+const STORY_KEY = 'h5m-story-v1'
 
 function read(key, fallback) {
   try {
@@ -55,10 +57,42 @@ export function addHistory(entry) {
   write(HISTORY_KEY, list.slice(0, HISTORY_LIMIT))
 }
 
+export function loadStory() {
+  const all = read(STORY_KEY, {})
+  return all && typeof all === 'object' ? all : {}
+}
+
+// Обновляет прохождение темы; шаг и опыт только растут
+export function saveStory(id, patch) {
+  const all = loadStory()
+  const prev = all[id] ?? {}
+  all[id] = {
+    ...prev,
+    ...patch,
+    step: Math.max(prev.step ?? 0, patch.step ?? 0),
+    xp: Math.max(prev.xp ?? 0, patch.xp ?? 0),
+    done: Boolean(prev.done || patch.done),
+    at: Date.now(),
+  }
+  write(STORY_KEY, all)
+  return all[id]
+}
+
+export function totalXp(story = loadStory()) {
+  return Object.values(story).reduce((s, x) => s + (x?.xp ?? 0), 0)
+}
+
+// Уровень: каждые 200 XP — новый уровень
+export function levelOf(xp) {
+  const level = Math.floor(xp / 200) + 1
+  return { level, into: xp % 200, need: 200 }
+}
+
 export function resetProgress() {
   try {
     localStorage.removeItem(KEY)
     localStorage.removeItem(HISTORY_KEY)
+    localStorage.removeItem(STORY_KEY)
   } catch {
     /* ignore */
   }
@@ -68,7 +102,7 @@ export function resetProgress() {
 
 export function exportProgress() {
   return JSON.stringify(
-    { app: 'history-in-5-minutes', version: 1, exportedAt: new Date().toISOString(), progress: loadProgress(), history: loadHistory() },
+    { app: 'history-in-5-minutes', version: 2, exportedAt: new Date().toISOString(), progress: loadProgress(), history: loadHistory(), story: loadStory() },
     null,
     2
   )
@@ -92,5 +126,8 @@ export function importProgress(text) {
   const seen = new Set(loadHistory().map((h) => `${h.id}|${h.at}`))
   const merged = [...loadHistory(), ...(Array.isArray(data.history) ? data.history : []).filter((h) => !seen.has(`${h.id}|${h.at}`))]
   write(HISTORY_KEY, merged.sort((a, b) => b.at - a.at).slice(0, HISTORY_LIMIT))
+  if (data.story && typeof data.story === 'object') {
+    for (const [id, st] of Object.entries(data.story)) if (st && typeof st === 'object') saveStory(id, st)
+  }
   return Object.keys(data.progress).length
 }

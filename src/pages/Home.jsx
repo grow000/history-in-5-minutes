@@ -1,11 +1,11 @@
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { animate, motion, useInView, useReducedMotion } from 'framer-motion'
-import { ArrowRight, BookOpen, GraduationCap, Landmark, Map as MapIcon, Search, Sparkles, Target, X } from 'lucide-react'
+import { ArrowRight, BookOpen, ChartNoAxesColumn, Compass, GraduationCap, Search, Sparkles, Target, X, Zap } from 'lucide-react'
 import Reveal, { stagger, staggerItem } from '../components/Reveal.jsx'
-import { COURSES, searchTopics, tasks, topics, topicsOfCourse } from '../data/course.js'
-import { events, filterEvents, plural } from '../data/index.js'
-import { loadHistory } from '../progress.js'
+import { COURSES, searchTopics, tasks, topics, topicsById, topicsOfCourse } from '../data/course.js'
+import { plural } from '../data/index.js'
+import { levelOf, loadHistory, loadStory, totalXp } from '../progress.js'
 
 function Counter({ to }) {
   const ref = useRef(null)
@@ -26,15 +26,26 @@ export default function Home() {
   const navigate = useNavigate()
   const [q, setQ] = useState('')
   const [last] = useState(() => loadHistory().find((h) => h.to))
+  const [story] = useState(loadStory)
+  const xp = totalXp(story)
+  const lvl = levelOf(xp)
+  // незаконченная тема, которую проходили последней
+  const resume = useMemo(() => {
+    const list = Object.entries(story)
+      .filter(([id, s]) => topicsById[id] && !s.done && (s.step ?? 0) > 0)
+      .sort((a, b) => (b[1].at ?? 0) - (a[1].at ?? 0))
+    if (!list.length) return null
+    const [id, s] = list[0]
+    return { topic: topicsById[id], percent: Math.round((((s.step ?? 0) + 1) / (s.steps || 1)) * 100) }
+  }, [story])
+  const doneCount = Object.values(story).filter((s) => s.done).length
   const inputRef = useRef(null)
 
   // поиск по всем текстам тяжёлый — считаем его с небольшой задержкой, чтобы ввод не тормозил
   const dq = useDeferredValue(q)
   const foundTopics = useMemo(() => (dq.trim() ? searchTopics(dq).slice(0, 6) : []), [dq])
-  const foundEvents = useMemo(() => (dq.trim() ? filterEvents({ q: dq }).slice(0, 4) : []), [dq])
 
   const daily = useMemo(() => topics[new Date().getDate() % Math.max(1, topics.length)], [])
-  const mapsCount = topics.filter((t) => t.map).length
 
   useEffect(() => {
     const onKey = (e) => {
@@ -52,7 +63,7 @@ export default function Home() {
       to: '/learn',
       icon: BookOpen,
       title: 'Курс истории',
-      text: 'История России и всеобщая история по учебникам Мединского: конспекты, карты, таблицы, термины и тесты.',
+      text: 'Темы как интерактивные истории: шаги, вопросы по ходу, карточки героев и терминов, игра с датами.',
       stat: `${topics.length} ${plural(topics.length, ['тема', 'темы', 'тем'])}`,
       color: '#4f46e5',
     },
@@ -60,16 +71,16 @@ export default function Home() {
       to: '/exam',
       icon: GraduationCap,
       title: 'ЕГЭ и ОГЭ',
-      text: 'Задания в формате ФИПИ: хронология, соответствие, термины, карты. Варианты и разбор ошибок.',
+      text: 'Все номера КИМ: часть 1 с автопроверкой и часть 2 с эталоном и критериями. Свой вариант за минуту.',
       stat: `${tasks.length} ${plural(tasks.length, ['задание', 'задания', 'заданий'])}`,
       color: '#ea580c',
     },
     {
-      to: '/events',
-      icon: Landmark,
-      title: 'События мира',
-      text: 'Ключевые события мировой истории от Древнего мира до XXI века — за 5 минут каждое.',
-      stat: `${events.length} ${plural(events.length, ['событие', 'события', 'событий'])}`,
+      to: '/progress',
+      icon: ChartNoAxesColumn,
+      title: 'Мой прогресс',
+      text: 'Опыт, уровни, пройденные темы и слабые места — всё сохраняется в браузере.',
+      stat: `${xp} XP · уровень ${lvl.level}`,
       color: '#0d9488',
     },
   ]
@@ -101,8 +112,8 @@ export default function Home() {
             ))}
           </h1>
           <p className="hero__lead">
-            История России и всеобщая история по учебникам Мединского, ключевые события мира и подготовка к ЕГЭ и ОГЭ — коротко,
-            наглядно и с проверкой знаний.
+            История России и всеобщая история по учебникам Мединского — не сплошным текстом, а интерактивными историями.
+            И подготовка к ЕГЭ и ОГЭ по всем номерам заданий.
           </p>
 
           <div className="search search--home">
@@ -111,10 +122,10 @@ export default function Home() {
               ref={inputRef}
               type="search"
               className="search__input"
-              placeholder="Поиск: Пётр I, Смута, 1812, опричнина…"
+              placeholder="Найти тему: Пётр I, Смута, 1812, опричнина…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              aria-label="Поиск по темам и событиям"
+              aria-label="Поиск по темам"
               autoComplete="off"
             />
             {q ? (
@@ -128,7 +139,7 @@ export default function Home() {
             )}
             {q.trim() && (
               <motion.div className="search-drop" initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-                {foundTopics.length + foundEvents.length === 0 && <div className="search-drop__empty">Ничего не найдено</div>}
+                {foundTopics.length === 0 && <div className="search-drop__empty">Ничего не найдено</div>}
                 {foundTopics.length > 0 && <div className="search-drop__group">Темы курса</div>}
                 {foundTopics.map((t) => (
                   <button key={t.id} type="button" className="search-drop__item" onClick={() => navigate(`/topic/${t.id}`)}>
@@ -137,22 +148,20 @@ export default function Home() {
                     <small>{t.period}</small>
                   </button>
                 ))}
-                {foundEvents.length > 0 && <div className="search-drop__group">События</div>}
-                {foundEvents.map((e) => (
-                  <button key={e.id} type="button" className="search-drop__item" onClick={() => navigate(`/event/${e.id}`)}>
-                    <Landmark size={16} />
-                    <span>{e.title}</span>
-                    <small>{e.date}</small>
-                  </button>
-                ))}
               </motion.div>
             )}
           </div>
 
-          {last && (
-            <Link to={last.to} className="continue-line">
-              Продолжить: <b>{last.title}</b> <ArrowRight size={15} />
+          {resume ? (
+            <Link to={`/topic/${resume.topic.id}`} className="continue-line">
+              Продолжить: <b>{resume.topic.title}</b> · {resume.percent}% <ArrowRight size={15} />
             </Link>
+          ) : (
+            last && (
+              <Link to={last.to} className="continue-line">
+                Продолжить: <b>{last.title}</b> <ArrowRight size={15} />
+              </Link>
+            )
           )}
 
           <div className="hero__stats">
@@ -165,8 +174,10 @@ export default function Home() {
               <span>заданий ЕГЭ/ОГЭ</span>
             </div>
             <div className="stat">
-              <Counter to={mapsCount} />
-              <span>карт</span>
+              <Counter to={xp} />
+              <span>
+                <Zap size={13} aria-hidden="true" /> твой XP · {doneCount} {plural(doneCount, ['тема пройдена', 'темы пройдено', 'тем пройдено'])}
+              </span>
             </div>
           </div>
         </div>
@@ -198,7 +209,7 @@ export default function Home() {
 
         <Reveal as="section" className="home-section">
           <h2 className="section-heading">
-            <MapIcon size={22} /> Лента истории России
+            <Compass size={22} /> Путь по истории России
           </h2>
           <div className="ribbon">
             {COURSES.filter((c) => c.group === 'russia').map((c, i) => (
@@ -231,7 +242,7 @@ export default function Home() {
             <p className="daily__text">{daily.summary}</p>
             <div className="daily__actions">
               <Link to={`/topic/${daily.id}`} className="btn btn--light">
-                Читать конспект
+                Пройти историю
               </Link>
               <Link to={`/topic/${daily.id}/quiz`} className="btn btn--outline-light">
                 Пройти тест

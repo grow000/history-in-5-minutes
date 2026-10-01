@@ -18,7 +18,6 @@ export default defineConfig({
           }
           const m = id.match(/src[\\/]data[\\/]topics[\\/](?:b\d+r?-(rus\d+)|w\d+r?-(world\d+))/)
           if (m) return `course-${m[1] ?? m[2]}`
-          if (/src[\\/]data[\\/]events[\\/]/.test(id)) return 'events'
         },
       },
     },

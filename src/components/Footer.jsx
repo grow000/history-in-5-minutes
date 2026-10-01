@@ -8,8 +8,8 @@ export default function Footer() {
         <div>
           <div className="footer__title">История за 5 минут</div>
           <p className="footer__text">
-            {topics.length} тем курса по учебникам В. Р. Мединского, подготовка к ЕГЭ и ОГЭ и ключевые события мировой
-            истории.
+            {topics.length} тем курса по учебникам В. Р. Мединского, интерактивные истории и подготовка к ЕГЭ и ОГЭ по
+            всем номерам заданий.
           </p>
         </div>
         <nav className="footer__nav" aria-label="Нижняя навигация">

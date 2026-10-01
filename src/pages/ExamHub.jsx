@@ -25,10 +25,13 @@ const REAL_TASKS = {
   ],
 }
 
-// Часть 1 по порядку номеров КИМ (из тех линий, что есть в тренажёре): ЕГЭ — № 1, 2, 3, 5, 6, 7, 9–12; ОГЭ — № 1–5, 8–10, 15–17
-const KIM_PART1 = {
-  ege: '1:1,2:1,3:1,5:1,6:2,7:1,9:3',
-  oge: '1:1,2:1,3:1,4:1,5:1,8:3,15:3',
+// Вариант как на экзамене: по одному заданию каждого номера КИМ (блок карты — три задания)
+function kimVariant(exam, withPart2) {
+  return EXAM_LINES[exam]
+    .filter((l) => l.part === 1 || (withPart2 && l.part === 2))
+    .filter((l) => tasksFor({ exam, line: l.id }).length > 0)
+    .map((l) => `${l.id}:${l.n.includes('–') ? 3 : 1}`)
+    .join(',')
 }
 
 export default function ExamHub() {
@@ -114,8 +117,11 @@ export default function ExamHub() {
                 <button type="button" className="btn btn--primary btn--lg" onClick={() => navigate(`/exam/practice?exam=${exam}&n=${size}&seed=${Date.now()}`)} disabled={!all.length}>
                   Начать вариант <ArrowRight size={18} />
                 </button>
-                <button type="button" className="btn btn--ghost exam-kim-btn" onClick={() => navigate(`/exam/practice?exam=${exam}&pick=${KIM_PART1[exam]}&mode=exam&seed=${Date.now()}`)}>
-                  <Timer size={17} /> Как на экзамене: часть 1 по номерам КИМ
+                <button type="button" className="btn btn--ghost exam-kim-btn" onClick={() => navigate(`/exam/practice?exam=${exam}&pick=${kimVariant(exam, false)}&mode=exam&seed=${Date.now()}`)}>
+                  <Timer size={17} /> Как на экзамене: часть 1
+                </button>
+                <button type="button" className="btn btn--ghost exam-kim-btn" onClick={() => navigate(`/exam/practice?exam=${exam}&pick=${kimVariant(exam, true)}&mode=exam&full=1&seed=${Date.now()}`)}>
+                  <Timer size={17} /> Полный вариант: части 1 и 2
                 </button>
               </motion.div>
 
@@ -321,8 +327,15 @@ function KimConstructor({ exam, progress }) {
         </div>
       </div>
 
+      {[
+        { id: 1, title: 'Часть 1 — краткий ответ (проверяется автоматически)' },
+        { id: 2, title: 'Часть 2 — развёрнутый ответ (самопроверка по критериям)' },
+        { id: 0, title: 'Дополнительная тренировка' },
+      ].map((part) => (
+      <div key={part.id} className="kim__part">
+      <h3 className="kim__part-title">{part.title}</h3>
       <motion.ul className="kim__list" variants={stagger} initial="hidden" animate="show">
-        {lines.map((l) => {
+        {lines.filter((l) => (l.part ?? 0) === part.id).map((l) => {
           const value = counts[l.id] ?? 0
           const max = Math.min(30, l.total)
           return (
@@ -363,6 +376,8 @@ function KimConstructor({ exam, progress }) {
           )
         })}
       </motion.ul>
+      </div>
+      ))}
 
       <div className={'kim__bar' + (totalSelected ? ' is-active' : '')}>
         <span>

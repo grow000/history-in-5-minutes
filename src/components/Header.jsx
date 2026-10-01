@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { BookOpen, ChartNoAxesColumn, GraduationCap, Home, Landmark, Moon, Sun } from 'lucide-react'
+import { BookOpen, ChartNoAxesColumn, GraduationCap, Home, Moon, Sun } from 'lucide-react'
 import Logo from './Logo.jsx'
 
 export const NAV = [
   { to: '/', label: 'Главная', icon: Home, match: (p) => p === '/' },
   { to: '/learn', label: 'Курс истории', short: 'Курс', icon: BookOpen, match: (p) => p.startsWith('/learn') || p.startsWith('/topic') },
   { to: '/exam', label: 'ЕГЭ и ОГЭ', short: 'ЕГЭ·ОГЭ', icon: GraduationCap, match: (p) => p.startsWith('/exam') },
-  { to: '/events', label: 'События', icon: Landmark, match: (p) => p.startsWith('/events') || p.startsWith('/event/') },
   { to: '/progress', label: 'Прогресс', icon: ChartNoAxesColumn, match: (p) => p.startsWith('/progress') },
 ]
 

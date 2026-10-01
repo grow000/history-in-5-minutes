@@ -1,7 +1,8 @@
 import { normalize } from './index.js'
 import { COURSES, SOURCES } from './courses-meta.js'
+import { KIM_SPEC, GRID_LETTERS } from './kim-spec.js'
 
-export { COURSES, SOURCES }
+export { COURSES, SOURCES, KIM_SPEC, GRID_LETTERS }
 
 // Темы курса: src/data/topics/*.js — каждый файл экспортирует массив тем
 const modules = import.meta.glob('./topics/*.js', { eager: true })
@@ -137,12 +138,38 @@ export const TASK_TYPES = {
   match: { title: 'Соответствие', hint: 'Установите соответствие: к каждой позиции первого столбца подберите позицию из второго.' },
   term: { title: 'Термин / понятие', hint: 'Запишите ответ словом (сочетанием слов).' },
   map: { title: 'Работа с картой', hint: 'Рассмотрите карту и ответьте на вопрос.' },
+  grid: { title: 'Таблица', hint: 'Заполните пустые ячейки таблицы: запишите номера элементов для букв А–Е по порядку.' },
+  thesis: { title: 'Тезисы и факты', hint: 'Запишите номера предложений: тезис, факт к нему, второй тезис, факт к нему.' },
+  stats: { title: 'Статистика', hint: 'Дополните суждения данными таблицы: запишите номера для букв А, Б, В.' },
+  scheme: { title: 'Схема', hint: 'Запишите слово (сочетание слов), которое пропущено в схеме.' },
+  open: { title: 'Развёрнутый ответ', hint: 'Напишите ответ, затем сравните его с эталоном и оцените себя по критериям.' },
 }
 
+// Задания по номерам КИМ: src/data/kim/*.js (часть 1 особых форматов и часть 2)
+const kimModules = import.meta.glob('./kim/*.js', { eager: true })
+const kimByTopic = {}
+Object.keys(kimModules)
+  .sort()
+  .forEach((path) =>
+    kimModules[path].default.forEach((k) => {
+      if (!topicsById[k.topic] || !KIM_SPEC[k.kim]) return
+      ;(kimByTopic[k.topic] ??= []).push(k)
+    })
+  )
+
 // Все задания банка с привязкой к теме
-export const tasks = topics.flatMap((t) =>
-  (t.tasks ?? []).map((task, i) => ({ ...task, id: `${t.id}-${i + 1}`, topic: t.id, topicTitle: t.title, course: t.course, chapter: t.chapter }))
-)
+export const tasks = topics.flatMap((t) => [
+  ...(t.tasks ?? []).map((task, i) => ({ ...task, id: `${t.id}-${i + 1}`, topic: t.id, topicTitle: t.title, course: t.course, chapter: t.chapter })),
+  ...(kimByTopic[t.id] ?? []).map((task, i) => ({
+    ...task,
+    exam: [task.kim.split('-')[0]],
+    id: `${t.id}-k${i + 1}`,
+    topic: t.id,
+    topicTitle: t.title,
+    course: t.course,
+    chapter: t.chapter,
+  })),
+])
 
 export const tasksById = Object.fromEntries(tasks.map((t) => [t.id, t]))
 
@@ -158,29 +185,64 @@ const isWorld = (t) => String(t.course ?? '').startsWith('world')
 const matchKind = (t) =>
   t.type !== 'match' ? null : isDateMatch(t) ? 'date' : isCultureMatch(t) ? 'culture' : isPeopleMatch(t) ? 'people' : 'process'
 
-// n — номер задания в КИМ; «+» — дополнительная тренировка вне точного формата КИМ
+const kimIs = (id) => (t) => t.kim === id
+const plain = (t) => !t.kim
+const worldSingleKind = (t) =>
+  /прочтите|отрыв|источник|документ/i.test(t.text ?? '') ? '17' : /деятел|кто из|о ком|кого из|правител|автор/i.test(t.text ?? '') ? '15' : '16'
+
+// n — номер задания в КИМ; part — часть работы (1 — краткий ответ, 2 — развёрнутый); «+» — доп. тренировка
 export const EXAM_LINES = {
   ege: [
-    { id: '1', n: '1', title: 'Даты: соответствие событий и годов', test: (t) => matchKind(t) === 'date' },
-    { id: '2', n: '2', title: 'Хронологическая последовательность', test: (t) => t.type === 'sequence' },
-    { id: '3', n: '3', title: 'Соответствие: процессы, явления и факты', test: (t) => matchKind(t) === 'process' },
-    { id: '5', n: '5', title: 'Соответствие: события и участники', test: (t) => matchKind(t) === 'people' },
-    { id: '6', n: '6, 12', title: 'Выбор верных суждений', test: (t) => t.type === 'multi' },
-    { id: '7', n: '7', title: 'Культура: памятники и их характеристики', test: (t) => matchKind(t) === 'culture' },
-    { id: '9', n: '9–12', title: 'Работа с исторической картой', test: (t) => t.type === 'map' },
-    { id: 'term', n: '+', title: 'Термины и понятия (к № 19)', test: (t) => t.type === 'term' },
-    { id: 'odd', n: '+', title: 'Лишний элемент в ряду', test: (t) => t.type === 'single' },
+    { id: '1', n: '1', part: 1, title: 'Даты: соответствие событий и годов', test: (t) => plain(t) && !isWorld(t) && matchKind(t) === 'date' },
+    { id: '2', n: '2', part: 1, title: 'Хронологическая последовательность (Россия и мир)', test: (t) => plain(t) && t.type === 'sequence' },
+    { id: '3', n: '3', part: 1, title: 'Соответствие: процессы, явления и факты', test: (t) => plain(t) && !isWorld(t) && matchKind(t) === 'process' },
+    { id: '4', n: '4', part: 1, title: 'Систематизация: заполнение таблицы', test: kimIs('ege-4') },
+    { id: '5', n: '5', part: 1, title: 'Соответствие: события и участники', test: (t) => plain(t) && !isWorld(t) && matchKind(t) === 'people' },
+    { id: '6', n: '6', part: 1, title: 'Письменный источник: верные суждения', test: kimIs('ege-6') },
+    { id: '7', n: '7', part: 1, title: 'Культура: памятники и их характеристики', test: (t) => plain(t) && !isWorld(t) && matchKind(t) === 'culture' },
+    { id: '8', n: '8', part: 1, title: 'Великая Отечественная война: изображение', test: kimIs('ege-8') },
+    { id: '9', n: '9–11', part: 1, title: 'Историческая карта (схема): названия и имена', test: (t) => plain(t) && !isWorld(t) && t.type === 'map' },
+    { id: '12', n: '12', part: 1, title: 'Карта (схема): верные суждения', test: kimIs('ege-12') },
+    { id: '13', n: '13', part: 2, title: 'Источник: атрибуция', test: kimIs('ege-13') },
+    { id: '14', n: '14', part: 2, title: 'Источник: поиск информации', test: kimIs('ege-14') },
+    { id: '15', n: '15', part: 2, title: 'Анализ изображения', test: kimIs('ege-15') },
+    { id: '16', n: '16', part: 2, title: 'Культура: изображения и факты', test: kimIs('ege-16') },
+    { id: '17', n: '17', part: 2, title: 'ВОВ: анализ двух источников', test: kimIs('ege-17') },
+    { id: '18', n: '18', part: 2, title: 'Причины и следствия', test: kimIs('ege-18') },
+    { id: '19', n: '19', part: 2, title: 'Историческое понятие', test: kimIs('ege-19') },
+    { id: '20', n: '20', part: 2, title: 'Сравнение', test: kimIs('ege-20') },
+    { id: '21', n: '21', part: 2, title: 'Аргументация точки зрения', test: kimIs('ege-21') },
+    { id: 'multi', n: '+', title: 'Верные суждения по теме', test: (t) => plain(t) && t.type === 'multi' },
+    { id: 'term', n: '+', title: 'Термины и понятия (к № 19)', test: (t) => plain(t) && t.type === 'term' },
+    { id: 'odd', n: '+', title: 'Лишний элемент в ряду', test: (t) => plain(t) && !isWorld(t) && t.type === 'single' },
+    { id: 'world', n: '+', title: 'Всеобщая история (к № 2 и 21)', test: (t) => plain(t) && isWorld(t) && t.type !== 'sequence' },
   ],
   oge: [
-    { id: '1', n: '1', title: 'Даты: соответствие событий и годов', test: (t) => matchKind(t) === 'date' },
-    { id: '2', n: '2', title: 'Хронологическая последовательность', test: (t) => t.type === 'sequence' },
-    { id: '3', n: '3', title: 'Термин по определению', test: (t) => t.type === 'term' && !isWorld(t) },
-    { id: '4', n: '4', title: 'Выбор верных фактов', test: (t) => t.type === 'multi' },
-    { id: '5', n: '5', title: 'Лишний термин в ряду', test: (t) => t.type === 'single' && !isWorld(t) },
-    { id: '8', n: '8–10', title: 'Работа с исторической картой', test: (t) => t.type === 'map' && !isWorld(t) },
-    { id: '15', n: '15–17', title: 'Всеобщая история: деятели, факты, источники', test: (t) => isWorld(t) && ['single', 'map', 'term'].includes(t.type) },
-    { id: 'culture', n: '+', title: 'Культура: памятники и деятели (к № 13–14)', test: (t) => matchKind(t) === 'culture' },
-    { id: 'match', n: '+', title: 'Соответствие: участники, процессы, факты', test: (t) => ['people', 'process'].includes(matchKind(t)) },
+    { id: '1', n: '1', part: 1, title: 'Даты: соответствие событий и годов', test: (t) => plain(t) && matchKind(t) === 'date' },
+    { id: '2', n: '2', part: 1, title: 'Хронологическая последовательность', test: (t) => plain(t) && !isWorld(t) && t.type === 'sequence' },
+    { id: '3', n: '3', part: 1, title: 'Термин по определению', test: (t) => plain(t) && t.type === 'term' && !isWorld(t) },
+    { id: '4', n: '4', part: 1, title: 'Выбор верных фактов', test: (t) => plain(t) && !isWorld(t) && t.type === 'multi' },
+    { id: '5', n: '5', part: 1, title: 'Лишний термин в ряду', test: (t) => plain(t) && t.type === 'single' && !isWorld(t) },
+    { id: '6', n: '6', part: 1, title: 'Тезисы и факты для аргументации', test: kimIs('oge-6') },
+    { id: '7', n: '7', part: 1, title: 'Статистическая таблица', test: kimIs('oge-7') },
+    { id: '8', n: '8–10', part: 1, title: 'Работа с исторической картой', test: (t) => plain(t) && t.type === 'map' && !isWorld(t) },
+    { id: '11', n: '11', part: 1, title: 'Работа с изображением', test: kimIs('oge-11') },
+    { id: '12', n: '12', part: 1, title: 'Логическая схема', test: kimIs('oge-12') },
+    { id: '13', n: '13', part: 1, title: 'Культура: выбор памятников', test: kimIs('oge-13') },
+    { id: '14', n: '14', part: 1, title: 'Культура: памятник', test: kimIs('oge-14') },
+    { id: '15', n: '15', part: 1, title: 'Всеобщая история: исторические деятели', test: (t) => plain(t) && isWorld(t) && t.type === 'single' && worldSingleKind(t) === '15' },
+    { id: '16', n: '16', part: 1, title: 'Всеобщая история: факты', test: (t) => plain(t) && isWorld(t) && (['map', 'term'].includes(t.type) || (t.type === 'single' && worldSingleKind(t) === '16')) },
+    { id: '17', n: '17', part: 1, title: 'Всеобщая история: исторический источник', test: (t) => plain(t) && isWorld(t) && t.type === 'single' && worldSingleKind(t) === '17' },
+    { id: '18', n: '18', part: 2, title: 'Источник: атрибуция', test: kimIs('oge-18') },
+    { id: '19', n: '19', part: 2, title: 'Источник: поиск информации', test: kimIs('oge-19') },
+    { id: '20', n: '20', part: 2, title: 'Источник: контекст', test: kimIs('oge-20') },
+    { id: '21', n: '21', part: 2, title: 'Причины и следствия', test: kimIs('oge-21') },
+    { id: '22', n: '22', part: 2, title: 'Исправление фактических ошибок', test: kimIs('oge-22') },
+    { id: '23', n: '23', part: 2, title: 'Сравнение', test: kimIs('oge-23') },
+    { id: '24', n: '24', part: 2, title: 'Анализ исторической ситуации', test: kimIs('oge-24') },
+    { id: 'culture', n: '+', title: 'Культура: памятники и деятели (к № 13–14)', test: (t) => plain(t) && matchKind(t) === 'culture' },
+    { id: 'match', n: '+', title: 'Соответствие: участники, процессы, факты', test: (t) => plain(t) && ['people', 'process'].includes(matchKind(t)) },
+    { id: 'world', n: '+', title: 'Всеобщая история: соответствие и суждения', test: (t) => plain(t) && isWorld(t) && ['match', 'multi', 'sequence'].includes(t.type) && matchKind(t) !== 'date' },
   ],
 }
 
@@ -237,7 +299,8 @@ export function tasksFor({ exam, course, topic, type, line, period }) {
 
 // Максимальный балл задания
 export function maxPoints(task) {
-  return task.type === 'match' || task.type === 'multi' ? 2 : 1
+  if (task.kim && KIM_SPEC[task.kim]) return KIM_SPEC[task.kim].points
+  return task.type === 'match' || task.type === 'multi' || task.type === 'stats' ? 2 : task.type === 'grid' ? 3 : 1
 }
 
 function digits(s) {
@@ -247,8 +310,13 @@ function digits(s) {
 // Проверка ответа как на экзамене: для соответствия и множественного выбора одна ошибка = 1 балл
 export function checkTask(task, raw) {
   const max = maxPoints(task)
-  if (task.type === 'term' || (task.type === 'map' && task.accept)) {
-    const variants = task.type === 'term' ? task.answer : task.accept
+  // развёрнутый ответ: ученик сам ставит балл по критериям (raw — число баллов)
+  if (task.type === 'open') {
+    const p = Number.parseInt(raw, 10)
+    return { points: Number.isFinite(p) ? Math.max(0, Math.min(max, p)) : 0, max }
+  }
+  if (task.type === 'term' || task.type === 'scheme' || (task.type === 'map' && task.accept)) {
+    const variants = task.type === 'map' ? task.accept : task.answer
     const norm = (s) => normalize(s).replace(/[^a-zа-я0-9]/g, '')
     const ok = variants.some((v) => norm(v) === norm(raw))
     return { points: ok ? 1 : 0, max }
@@ -267,7 +335,17 @@ export function checkTask(task, raw) {
     if (g.length === r.length && missing === 1 && extra === 1) return { points: 1, max }
     return { points: 0, max }
   }
-  if (task.type === 'match') {
+  if (task.type === 'grid') {
+    if (given.length !== right.length) return { points: 0, max }
+    const errors = [...right].filter((c, i) => given[i] !== c).length
+    return { points: errors === 0 ? 3 : errors === 1 ? 2 : errors <= 3 ? 1 : 0, max }
+  }
+  if (task.type === 'thesis') {
+    // пары «тезис — факт» можно записать в любом порядке
+    const swapped = right.slice(2) + right.slice(0, 2)
+    return { points: given === right || given === swapped ? 1 : 0, max }
+  }
+  if (task.type === 'match' || task.type === 'stats') {
     if (given.length !== right.length) return { points: 0, max }
     const errors = [...right].filter((c, i) => given[i] !== c).length
     return { points: errors === 0 ? 2 : errors === 1 ? 1 : 0, max }
@@ -277,7 +355,8 @@ export function checkTask(task, raw) {
 }
 
 export function formatAnswer(task) {
-  if (task.type === 'term') return task.answer[0]
+  if (task.type === 'open') return (task.sample ?? []).join('; ')
+  if (task.type === 'term' || task.type === 'scheme') return task.answer[0]
   if (task.type === 'map' && task.accept) return task.accept[0]
   return String(task.answer)
 }

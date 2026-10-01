@@ -7,7 +7,8 @@ import { checkTask, coursesById, EXAM_LINES, EXAMS, PERIODS, formatAnswer, lineO
 import { plural } from '../data/index.js'
 import { addHistory, saveResult } from '../progress.js'
 
-const LETTERS = ['А', 'Б', 'В', 'Г', 'Д']
+const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е']
+const THESIS_LABELS = ['Тезис', 'Факт', 'Тезис', 'Факт']
 
 function rng(seed) {
   let a = seed >>> 0
@@ -74,6 +75,8 @@ export default function ExamPractice() {
   }, [exam, course, topic, type, line, period, n, seed, only, picks])
 
   const [answers, setAnswers] = useState({})
+  // баллы, которые ученик поставил себе за развёрнутые ответы
+  const [selfScores, setSelfScores] = useState({})
   const [checked, setChecked] = useState(false)
   const examMode = params.get('mode') === 'exam'
   const [startedAt, setStartedAt] = useState(() => Date.now())
@@ -89,6 +92,7 @@ export default function ExamPractice() {
 
   useEffect(() => {
     setAnswers({})
+    setSelfScores({})
     setChecked(false)
     setStartedAt(Date.now())
     setNow(Date.now())
@@ -101,7 +105,7 @@ export default function ExamPractice() {
   }
   const shortLine = (id) => (findLine(id)?.n === '+' ? 'доп.' : `№ ${findLine(id)?.n}`)
   const title = examMode
-    ? `${EXAMS[exam]?.title ?? ''}: часть 1 по номерам КИМ`
+    ? `${EXAMS[exam]?.title ?? ''}: ${params.get('full') ? 'полный вариант (части 1 и 2)' : 'часть 1 по номерам КИМ'}`
     : picks.length
     ? picks.length === 1
       ? lineTitle(picks[0].id)
@@ -127,7 +131,16 @@ export default function ExamPractice() {
     }
   }, [title])
 
-  const results = useMemo(() => (checked ? list.map((t) => checkTask(t, answers[t.id] ?? '')) : []), [checked, list, answers])
+  const given = (t) => (t.type === 'open' ? selfScores[t.id] ?? 0 : answers[t.id] ?? '')
+  const results = useMemo(
+    () => (checked ? list.map((t) => checkTask(t, t.type === 'open' ? selfScores[t.id] ?? 0 : answers[t.id] ?? '')) : []),
+    [checked, list, answers, selfScores]
+  )
+  const hasOpen = list.some((t) => t.type === 'open')
+  const setSelf = (t, p) => {
+    setSelfScores((s) => ({ ...s, [t.id]: p }))
+    saveResult('exam:' + t.id, p, maxPoints(t))
+  }
   const score = results.reduce((s, r) => s + r.points, 0)
   const max = list.reduce((s, t) => s + maxPoints(t), 0)
   const answered = list.filter((t) => (answers[t.id] ?? '').trim()).length
@@ -138,7 +151,7 @@ export default function ExamPractice() {
     let total = 0
     const lines = {}
     list.forEach((t) => {
-      const r = checkTask(t, answers[t.id] ?? '')
+      const r = checkTask(t, given(t))
       saveResult('exam:' + t.id, r.points, r.max)
       got += r.points
       total += r.max
@@ -193,7 +206,7 @@ export default function ExamPractice() {
           <p className="muted">
             {list.length} {plural(list.length, ['задание', 'задания', 'заданий'])} · максимум {max}{' '}
             {plural(max, ['балл', 'балла', 'баллов'])}. Ответы проверяются по правилам ЕГЭ: в заданиях на соответствие и
-            выбор нескольких верных одна ошибка — 1 балл из 2.
+            выбор нескольких верных одна ошибка — 1 балл из 2.{hasOpen && ' Задания части 2 оцениваются самопроверкой по критериям ФИПИ.'}
           </p>
         </div>
 
@@ -209,6 +222,7 @@ export default function ExamPractice() {
                 <p>
                   Верно решено {results.filter((r) => r.points === r.max).length} из {list.length} за {clock}. Ниже — разбор
                   каждого задания.
+                  {hasOpen && ' Развёрнутые ответы оцени сам: сравни свой ответ с эталоном и поставь баллы по критериям.'}
                 </p>
                 <div className="practice-result__actions">
                   {wrong.length > 0 && (
@@ -250,6 +264,8 @@ export default function ExamPractice() {
               onChange={(v) => setAnswers((a) => ({ ...a, [t.id]: v }))}
               result={checked ? results[i] : null}
               exam={exam}
+              selfScore={selfScores[t.id]}
+              onSelfScore={(p) => setSelf(t, p)}
             />
           ))}
         </ol>
@@ -272,7 +288,7 @@ export default function ExamPractice() {
   )
 }
 
-function TaskCard({ task, index, value, onChange, result, exam }) {
+function TaskCard({ task, index, value, onChange, result, exam, selfScore, onSelfScore }) {
   const kim = lineOf(task, exam ?? task.exam[0])
   const status = result ? (result.points === result.max ? 'ok' : result.points > 0 ? 'part' : 'bad') : null
   const topic = topicsById[task.topic]
@@ -299,7 +315,85 @@ function TaskCard({ task, index, value, onChange, result, exam }) {
         )}
       </div>
 
+      {(task.sources ?? (task.source ? [task.source] : [])).map((src, i) => (
+        <figure key={i} className="task__source">
+          <figcaption>{src.title}</figcaption>
+          <blockquote>{src.text}</blockquote>
+        </figure>
+      ))}
+
+      {task.image && (
+        <figure className="task__image">
+          <figcaption>Изображение (описание)</figcaption>
+          <p>{task.image}</p>
+        </figure>
+      )}
+
       <p className="task__text">{task.text}</p>
+
+      {task.type === 'grid' && <GridTable task={task} />}
+
+      {task.type === 'stats' && (
+        <>
+          <div className="task__table-wrap">
+            <table className="task__table">
+              <caption>{task.data.title}</caption>
+              <thead>
+                <tr>
+                  {task.data.columns.map((c, i) => (
+                    <th key={i}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {task.data.rows.map((r, i) => (
+                  <tr key={i}>
+                    {r.map((c, j) => (
+                      <td key={j}>{c}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <ul className="task__statements">
+            {task.statements.map((st, i) => {
+              const [a, b] = st.split('___')
+              return (
+                <li key={i}>
+                  {a}
+                  <span className="task__gap">({LETTERS[i]}) ______</span>
+                  {b}
+                </li>
+              )
+            })}
+          </ul>
+        </>
+      )}
+
+      {task.type === 'scheme' && (
+        <div className="task__scheme" aria-label="Схема">
+          <div className="task__scheme-top">{task.scheme.top}</div>
+          <div className="task__scheme-items">
+            {task.scheme.items.map((it, i) => (
+              <div key={i} className={'task__scheme-item' + (it.includes('___') ? ' is-gap' : '')}>
+                {it.includes('___') ? it.replace('___', '?') : it}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {task.type === 'thesis' && (
+        <ol className="task__options">
+          {task.sentences.map((o, i) => (
+            <li key={i}>
+              <span className="task__opt-n">{i + 1}</span>
+              {o}
+            </li>
+          ))}
+        </ol>
+      )}
 
       {task.map && (
         <div className="task__map">
@@ -307,7 +401,7 @@ function TaskCard({ task, index, value, onChange, result, exam }) {
         </div>
       )}
 
-      {(task.type === 'single' || task.type === 'multi' || (task.type === 'map' && task.options)) && (
+      {(task.type === 'single' || task.type === 'multi' || task.type === 'grid' || task.type === 'stats' || (task.type === 'map' && task.options)) && (
         <ol className="task__options">
           {task.options.map((o, i) => (
             <li key={i}>
@@ -357,25 +451,66 @@ function TaskCard({ task, index, value, onChange, result, exam }) {
       )}
 
       <div className="task__answer">
-        {task.type === 'match' ? (
-          <MatchInput count={task.left.length} value={value} onChange={onChange} disabled={!!result} />
+        {task.type === 'open' ? (
+          <label className="task__field task__field--open">
+            <span>Твой ответ:</span>
+            <textarea value={value} onChange={(e) => onChange(e.target.value)} disabled={!!result} rows={5} placeholder="Напиши ответ так, как на экзамене" />
+          </label>
+        ) : task.type === 'match' || task.type === 'grid' || task.type === 'stats' || task.type === 'thesis' ? (
+          <MatchInput
+            count={task.type === 'match' ? task.left.length : task.type === 'grid' ? 6 : task.type === 'stats' ? 3 : 4}
+            labels={task.type === 'thesis' ? THESIS_LABELS : null}
+            value={value}
+            onChange={onChange}
+            disabled={!!result}
+          />
         ) : (
           <label className="task__field">
             <span>Ответ:</span>
             <input
               type="text"
-              inputMode={task.type === 'term' || (task.type === 'map' && task.accept) ? 'text' : 'numeric'}
+              inputMode={task.type === 'term' || task.type === 'scheme' || (task.type === 'map' && task.accept) ? 'text' : 'numeric'}
               value={value}
               onChange={(e) => onChange(e.target.value)}
               disabled={!!result}
-              placeholder={task.type === 'term' || (task.type === 'map' && task.accept) ? 'слово или словосочетание' : 'цифры без пробелов'}
+              placeholder={task.type === 'term' || task.type === 'scheme' || (task.type === 'map' && task.accept) ? 'слово или словосочетание' : 'цифры без пробелов'}
               autoComplete="off"
             />
           </label>
         )}
       </div>
 
-      {result && (
+      {result && task.type === 'open' && (
+        <motion.div className="task__solution task__solution--open" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
+          <h4>Эталон: элементы правильного ответа</h4>
+          <ul>
+            {task.sample.map((x, i) => (
+              <li key={i}>{x}</li>
+            ))}
+          </ul>
+          <h4>Критерии оценивания</h4>
+          <ul className="task__criteria">
+            {task.criteria.map((x, i) => (
+              <li key={i}>{x}</li>
+            ))}
+          </ul>
+          <div className="self-score" role="group" aria-label="Оцени свой ответ">
+            <span>Сколько баллов ты заработал?</span>
+            {Array.from({ length: result.max + 1 }, (_, p) => (
+              <button key={p} type="button" className={'self-score__btn' + (selfScore === p ? ' is-active' : '')} onClick={() => onSelfScore(p)}>
+                {p}
+              </button>
+            ))}
+          </div>
+          {topic && (
+            <Link to={`/topic/${topic.id}`} className="review__more">
+              <BookOpen size={15} /> Материал: {topic.title}
+            </Link>
+          )}
+        </motion.div>
+      )}
+
+      {result && task.type !== 'open' && (
         <motion.div className="task__solution" initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}>
           <div className="task__answers">
             <span>
@@ -397,7 +532,33 @@ function TaskCard({ task, index, value, onChange, result, exam }) {
   )
 }
 
-function MatchInput({ count, value, onChange, disabled }) {
+function GridTable({ task }) {
+  let gap = 0
+  return (
+    <div className="task__table-wrap">
+      <table className="task__table task__table--grid">
+        <thead>
+          <tr>
+            {task.columns.map((c, i) => (
+              <th key={i}>{c}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {task.rows.map((r, i) => (
+            <tr key={i}>
+              {r.map((c, j) => (
+                <td key={j}>{c === '?' ? <span className="task__gap-letter">{LETTERS[gap++]}</span> : c}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function MatchInput({ count, value, onChange, disabled, labels }) {
   const cells = Array.from({ length: count }, (_, i) => value[i] ?? '')
   const refs = useRef([])
   const set = (i, v) => {
@@ -411,7 +572,7 @@ function MatchInput({ count, value, onChange, disabled }) {
       <span>Ответ:</span>
       {cells.map((c, i) => (
         <label key={i} className="match-input__cell">
-          <span>{LETTERS[i]}</span>
+          <span>{labels ? labels[i] : LETTERS[i]}</span>
           <input
             ref={(el) => (refs.current[i] = el)}
             inputMode="numeric"
@@ -419,7 +580,7 @@ function MatchInput({ count, value, onChange, disabled }) {
             value={c.trim()}
             onChange={(e) => set(i, e.target.value)}
             disabled={disabled}
-            aria-label={`Цифра для ${LETTERS[i]}`}
+            aria-label={`Цифра для ${labels ? labels[i] : LETTERS[i]}`}
           />
         </label>
       ))}

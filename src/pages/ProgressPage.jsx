@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { Download, Upload } from 'lucide-react'
 import { COURSES, EXAM_LINES, EXAMS, tasks, topics } from '../data/course.js'
 import { plural } from '../data/index.js'
-import { exportProgress, importProgress, loadHistory, loadProgress, resetProgress } from '../progress.js'
+import { exportProgress, importProgress, levelOf, loadHistory, loadProgress, loadStory, resetProgress, totalXp } from '../progress.js'
 
 const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0)
 
@@ -14,6 +14,10 @@ function formatDate(ts) {
 export default function ProgressPage() {
   const [progress, setProgress] = useState(loadProgress)
   const [history, setHistory] = useState(loadHistory)
+  const [story, setStory] = useState(loadStory)
+  const xp = totalXp(story)
+  const lvl = levelOf(xp)
+  const storiesDone = Object.values(story).filter((x) => x?.done).length
   const [message, setMessage] = useState('')
   const fileRef = useRef(null)
 
@@ -27,6 +31,7 @@ export default function ProgressPage() {
   const refresh = () => {
     setProgress(loadProgress())
     setHistory(loadHistory())
+    setStory(loadStory())
   }
 
   // Тесты по темам
@@ -61,7 +66,7 @@ export default function ProgressPage() {
 
   const sessions = history.filter((h) => h.kind === 'exam-session')
   const examSolved = Object.keys(progress).filter((k) => k.startsWith('exam:')).length
-  const hasAny = Object.keys(progress).length > 0
+  const hasAny = Object.keys(progress).length > 0 || Object.keys(story).length > 0
 
   const download = () => {
     const blob = new Blob([exportProgress()], { type: 'application/json' })
@@ -117,6 +122,21 @@ export default function ProgressPage() {
       {hasAny && (
         <>
           <section className="simple-section">
+            <div className="xp-card">
+              <div className="xp-card__level">
+                <b>{lvl.level}</b>
+                <span>уровень</span>
+              </div>
+              <div className="xp-card__main">
+                <div className="xp-card__title">
+                  {xp} XP · {storiesDone} {plural(storiesDone, ['тема пройдена', 'темы пройдено', 'тем пройдено'])} целиком
+                </div>
+                <div className="xp-card__bar" aria-label={`До следующего уровня ${lvl.need - lvl.into} XP`}>
+                  <span style={{ width: `${(lvl.into / lvl.need) * 100}%` }} />
+                </div>
+                <div className="xp-card__hint">До уровня {lvl.level + 1} осталось {lvl.need - lvl.into} XP. Опыт дают шаги темы, ответы по ходу, карточки и игра с датами.</div>
+              </div>
+            </div>
             <div className="stat-row">
               <div className="stat-tile">
                 <b>{topicStats.done}</b>

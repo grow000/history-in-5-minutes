@@ -1,12 +1,9 @@
 import { useEffect } from 'react'
-import { HashRouter, Routes, Route, useLocation, useParams } from 'react-router-dom'
+import { HashRouter, Navigate, Routes, Route, useLocation, useParams } from 'react-router-dom'
 import { MotionConfig } from 'framer-motion'
 import Header from './components/Header.jsx'
 import Footer from './components/Footer.jsx'
 import Home from './pages/Home.jsx'
-import Events from './pages/Events.jsx'
-import EventPage from './pages/EventPage.jsx'
-import QuizPage from './pages/QuizPage.jsx'
 import Learn from './pages/Learn.jsx'
 import CoursePage from './pages/CoursePage.jsx'
 import TopicPage from './pages/TopicPage.jsx'
@@ -26,7 +23,7 @@ function ScrollToTop() {
   return null
 }
 
-// key={id} сбрасывает состояние страницы при переходе к другой теме/событию
+// key={id} сбрасывает состояние страницы при переходе к другой теме
 function withId(Component) {
   return function Routed() {
     const { id } = useParams()
@@ -34,8 +31,6 @@ function withId(Component) {
   }
 }
 
-const EventRoute = withId(EventPage)
-const QuizRoute = withId(QuizPage)
 const CourseRoute = withId(CoursePage)
 const TopicRoute = withId(TopicPage)
 const TopicQuizRoute = withId(TopicQuizPage)
@@ -58,9 +53,8 @@ function Layout() {
           <Route path="/topic/:id/quiz" element={<TopicQuizRoute />} />
           <Route path="/exam" element={<ExamHub />} />
           <Route path="/exam/practice" element={<ExamPractice />} />
-          <Route path="/events" element={<Events />} />
-          <Route path="/event/:id" element={<EventRoute />} />
-          <Route path="/event/:id/quiz" element={<QuizRoute />} />
+          <Route path="/events" element={<Navigate to="/learn" replace />} />
+          <Route path="/event/*" element={<Navigate to="/learn" replace />} />
           <Route path="/sources" element={<Sources />} />
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/about" element={<About />} />

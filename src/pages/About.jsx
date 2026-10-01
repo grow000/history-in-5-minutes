@@ -1,32 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { events, ERA_LIST, plural } from '../data/index.js'
-import { loadProgress, resetProgress } from '../progress.js'
+import { COURSES, tasks, topics, topicsOfCourse } from '../data/course.js'
+import { plural } from '../data/index.js'
 
 const STEPS = [
-  { icon: '🔎', title: 'Выбери тему', text: 'История России или всеобщая история, 5–11 класс — через поиск или по оглавлению учебника.' },
-  { icon: '📖', title: 'Прочитай конспект', text: 'Главное по теме, карта, таблица, термины, даты и личности — всё на одной странице.' },
-  { icon: '🎯', title: 'Проверь себя', text: 'Тест с объяснениями и задания в формате ЕГЭ/ОГЭ. Результаты сохраняются в браузере.' },
+  { icon: '🧭', title: 'Выбери тему', text: 'История России или всеобщая история, 5–11 класс — через поиск или по пути курса.' },
+  { icon: '📖', title: 'Пройди историю', text: 'Тема разбита на короткие шаги: рассказ, вопросы на понимание, карточки, игра с датами.' },
+  { icon: '🎯', title: 'Проверь себя', text: 'Тест с объяснениями и задания всех номеров ЕГЭ/ОГЭ. Прогресс сохраняется в браузере.' },
 ]
 
 export default function About() {
-  const [progress, setProgress] = useState(loadProgress)
-  const done = Object.keys(progress).filter((id) => events.some((e) => e.id === id))
-  const perfect = done.filter((id) => progress[id].best === progress[id].total).length
-
   useEffect(() => {
     document.title = 'О проекте — История за 5 минут'
     return () => {
       document.title = 'История за 5 минут'
     }
   }, [])
-
-  const onReset = () => {
-    if (window.confirm('Сбросить результаты всех викторин?')) {
-      resetProgress()
-      setProgress({})
-    }
-  }
 
   return (
     <div className="about">
@@ -38,8 +27,7 @@ export default function About() {
           </h1>
           <p className="about-hero__lead">
             «История за 5 минут» — учебный сайт, где темы истории России и всеобщей истории по учебникам Мединского
-            объясняются коротко и понятно.
-            Он помогает подготовиться к уроку, повторить тему перед контрольной или просто узнать что-то новое.
+            объясняются коротко, понятно и в игровой форме. Он помогает подготовиться к уроку, контрольной, ОГЭ и ЕГЭ.
           </p>
         </div>
       </section>
@@ -60,74 +48,40 @@ export default function About() {
         </section>
 
         <section className="about-section">
-          <h2>Эпохи</h2>
+          <h2>Курсы</h2>
           <div className="era-list">
-            {ERA_LIST.map((era) => {
-              const count = events.filter((e) => e.era === era.id).length
+            {COURSES.map((c) => {
+              const count = topicsOfCourse(c.id).length
               return (
-                <Link key={era.id} to={`/events?era=${era.id}`} className="era-row" style={{ '--era': era.color }}>
-                  <span className="era-row__emoji" aria-hidden="true">{era.emoji}</span>
-                  <span className="era-row__title">{era.title}</span>
-                  <span className="era-row__range">{era.range}</span>
+                <Link key={c.id} to={`/learn/${c.id}`} className="era-row" style={{ '--era': c.color }}>
+                  <span className="era-row__title">{c.short}</span>
+                  <span className="era-row__range">{c.period}</span>
                   <span className="era-row__count">
-                    {count} {plural(count, ['событие', 'события', 'событий'])}
+                    {count} {plural(count, ['тема', 'темы', 'тем'])}
                   </span>
                 </Link>
               )
             })}
           </div>
-        </section>
-
-        <section className="about-section">
-          <h2>Твой прогресс</h2>
-          <div className="progress-card">
-            <div className="progress-card__stats">
-              <div className="stat stat--card">
-                <b>{done.length}</b>
-                <span>из {events.length} викторин пройдено</span>
-              </div>
-              <div className="stat stat--card">
-                <b>{perfect}</b>
-                <span>на 5 из 5</span>
-              </div>
-            </div>
-            <div className="bar" aria-hidden="true">
-              <span style={{ width: `${(done.length / events.length) * 100}%` }} />
-            </div>
-            {done.length > 0 && (
-              <button type="button" className="btn btn--ghost btn--sm" onClick={onReset}>
-                Сбросить прогресс
-              </button>
-            )}
-          </div>
+          <p className="muted">
+            Всего {topics.length} {plural(topics.length, ['тема', 'темы', 'тем'])} и {tasks.length}{' '}
+            {plural(tasks.length, ['задание', 'задания', 'заданий'])} в формате ЕГЭ и ОГЭ.
+          </p>
         </section>
 
         <section className="about-section">
           <h2>Принципы</h2>
           <ul className="principles">
-            <li><b>Коротко.</b> Каждый конспект читается примерно за 5 минут.</li>
-            <li><b>Понятно.</b> Тексты написаны простым языком для учеников 5–11 классов.</li>
-            <li><b>Проверено.</b> Даты и факты сверены с общепринятыми данными учебников и энциклопедий. Спорные даты помечены как приблизительные.</li>
+            <li><b>Коротко.</b> Каждая тема проходится примерно за 5–10 минут.</li>
+            <li><b>Интересно.</b> Не сплошной текст, а шаги, вопросы, карточки и мини-игры.</li>
+            <li><b>Проверено.</b> Даты и факты сверены с учебниками и энциклопедиями. Спорные даты помечены как приблизительные.</li>
             <li><b>Без лишнего.</b> Нет регистрации, рекламы и сервера — сайт работает прямо в браузере.</li>
           </ul>
         </section>
 
-        <section className="about-section">
-          <h2>Технологии</h2>
-          <div className="tech">
-            {['React 18', 'Vite', 'React Router', 'CSS без фреймворков', 'localStorage'].map((t) => (
-              <span key={t} className="tag tag--lg">{t}</span>
-            ))}
-          </div>
-          <p className="muted">
-            Контент хранится в JS-файлах в папке <code>src/data/events</code>. Чтобы добавить новое событие, достаточно
-            дописать объект в любой из них — оно автоматически появится в поиске, фильтрах и викторинах.
-          </p>
-        </section>
-
         <div className="about-cta">
-          <Link to="/events" className="btn btn--primary btn--lg">
-            Перейти к событиям
+          <Link to="/learn" className="btn btn--primary btn--lg">
+            Начать учиться
           </Link>
         </div>
       </div>
